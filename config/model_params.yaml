@@ -1,0 +1,79 @@
+# GNN Model Configurations for Vulnerability Detection
+
+# Standard GCN Configuration
+gcn_standard:
+  model_type: gcn
+  hidden_dim: 128
+  num_layers: 3
+  dropout_rate: 0.3
+  use_batch_norm: true
+  pool_type: mean
+  num_classes: 2
+
+# Graph Attention Network Configuration  
+gat_standard:
+  model_type: gat
+  hidden_dim: 128
+  num_layers: 3
+  dropout_rate: 0.3
+  heads: 4
+  concat_heads: true
+  num_classes: 2
+
+# GraphSAGE Configuration
+graphsage_standard:
+  model_type: graphsage
+  hidden_dim: 128
+  num_layers: 3
+  dropout_rate: 0.3
+  aggr: mean
+  num_classes: 2
+
+# Graph Isomorphism Network Configuration
+gin_standard:
+  model_type: gin
+  hidden_dim: 128
+  num_layers: 3
+  dropout_rate: 0.3
+  eps: 0.1
+  num_classes: 2
+
+# High Performance Configuration (for large datasets)
+gcn_high_performance:
+  model_type: gcn
+  hidden_dim: 256
+  num_layers: 4
+  dropout_rate: 0.2
+  use_batch_norm: true
+  pool_type: combined
+  num_classes: 2
+
+# Lightweight Configuration (for small datasets or fast inference)
+gcn_lightweight:
+  model_type: gcn
+  hidden_dim: 64
+  num_layers: 2
+  dropout_rate: 0.5
+  use_batch_norm: false
+  pool_type: mean
+  num_classes: 2
+
+# Multi-class Configuration (for CWE classification)
+gcn_multiclass:
+  model_type: gcn
+  hidden_dim: 256
+  num_layers: 4
+  dropout_rate: 0.3
+  use_batch_norm: true
+  pool_type: combined
+  num_classes: 25  # Top 25 CWE types
+
+# Default configuration
+default:
+  model_type: gcn
+  hidden_dim: 128
+  num_layers: 3
+  dropout_rate: 0.3
+  use_batch_norm: true
+  pool_type: mean
+  num_classes: 2

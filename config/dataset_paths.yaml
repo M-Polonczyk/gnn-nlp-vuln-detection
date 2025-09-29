@@ -1,0 +1,14 @@
+# Dataset paths configuration
+raw_data_dir: data/raw
+processed_data_dir: data/processed
+
+# MegaVul dataset configuration
+megavul:
+  dataset_path: data/preprocessed/megavul/dataset.json
+  processed_path: data/processed/megavul/
+
+# DiverseVul dataset configuration
+diversevul:
+  dataset_path: data/processed/vuln_data/functions.json
+  metadata_path: data/preprocessed/diversevul/metadata.json
+  processed_path: data/processed/diversevul/

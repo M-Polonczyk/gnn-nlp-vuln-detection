@@ -1,0 +1,184 @@
+[project]
+name = "gnn-nlp-vuln-detection"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "astor>=0.8.1",
+    "inflect>=7.5.0",
+    "ipywidgets>=8.1.7",
+    "javalang",
+    "jupyterlab>=4.4.7",
+    "matplotlib>=3.10.6",
+    "mypy>=1.17.1",
+    "networkx>=3.5",
+    "nltk>=3.9.1",
+    "numpy>=2.3.3",
+    "onnxscript>=0.4.0",
+    "pandas>=2.3.2",
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+    "pyyaml>=6.0.2",
+    "ruff>=0.13.0",
+    "scikit-learn>=1.7.2",
+    "seaborn>=0.13.2",
+    "sentencepiece>=0.2.1",
+    "sphinx>=8.2.3",
+    "sphinx-rtd-theme>=3.0.2",
+    "torch>=2.8.0",
+    "torch-geometric>=2.6.1",
+    "torchvision>=0.23.0",
+    "tqdm>=4.67.1",
+    "tree-sitter>=0.25.1",
+    "tree-sitter-c==0.23.0",
+    "tree-sitter-cpp>=0.23.4",
+    "tree-sitter-go>=0.25.0",
+    "tree-sitter-java>=0.23.5",
+]
+
+# ==== pytest ====
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["src/tests"]
+addopts = [
+    "-v",
+    "--tb=short", 
+    "--strict-markers",
+    "--strict-config",
+    "--import-mode=importlib"
+]
+python_files = [
+    "test_*.py",
+]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests", 
+    "unit: marks tests as unit tests"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning"
+]
+
+# ==== mypy ====
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = true
+allow_redefinition = true
+show_error_codes = true
+show_column_numbers = true
+disallow_untyped_defs = true
+disallow_untyped_decorators = true
+follow_imports = "normal"
+local_partial_types = true
+enable_error_code = "possibly-undefined"
+
+[[tool.mypy.overrides]]
+# Notebooks should not produce any errors:
+module = "notebooks/*"
+ignore_errors = true
+
+
+[tool.mypy-torch]
+disallow_any_generics = true
+ignore_missing_imports = true
+
+[tool.mypy-torch.ao.quantization.pt2e._affine_quantization]
+ignore_errors = true
+
+[tool.mypy-numpy]
+ignore_missing_imports = true
+
+# ==== ruff ====
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+  "F",
+  "E",
+  "W",
+  "C90",
+  "I",
+  "N",
+  "UP",
+  "YTT",
+  "ANN", # flake8-annotations
+  "ASYNC",
+  "S",
+  "BLE",
+  "FBT",
+  "B",
+  "A",
+  "COM",
+  "C4",
+  "DTZ",
+  "T10",
+  "DJ",
+  "EM",
+  "EXE",
+  "FA",
+  'ISC',
+  "ICN",
+  "G",
+  'INP',
+  'PIE',
+  "T20",
+  'PYI',
+  'PT',
+  "Q",
+  "RSE",
+  "RET",
+  "SLF",
+  "SLOT",
+  "SIM",
+  "TID",
+  "TC",
+  "INT",
+  "ARG", # Unused function argument
+  "PTH",
+  "ERA",
+  "PD",
+  "PGH",
+  "PL",
+  "TRY",
+  "FLY",
+  # "NPY",
+  # "AIR",
+  "PERF",
+  # "FURB",
+  # "LOG",
+  "RUF",
+]
+ignore = [
+  "S101", # Use of assert detected https://docs.astral.sh/ruff/rules/assert/
+  "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
+  "SIM102", # sometimes it's better to nest
+  "UP038", # Checks for uses of isinstance/issubclass that take a tuple
+          # of types for comparison.
+          # Deactivated because it can make the code slow:
+          # https://github.com/astral-sh/ruff/issues/7871
+]
+# The fixes in extend-unsafe-fixes will require
+# provide the `--unsafe-fixes` flag when fixing.
+extend-unsafe-fixes = [
+  "UP038",
+]
+
+[tool.uv.sources]
+javalang = { git = "https://github.com/smkang96/javalang-plus.git", rev = "5d48dc31c70afb0bf1295d504657ef72ede5eac0" }
+
+[dependency-groups]
+dev = [
+    "coverage>=7.10.6",
+    "mypy>=1.17.1",
+    "pytest>=8.4.2",
+    "ruff>=0.13.0",
+]

@@ -1,0 +1,54 @@
+# Core ML/DL
+torch
+torchvision
+
+# For GNNs (choose one, PyG is popular)
+torch_geometric
+
+# NLP/Transformers
+# transformers
+sentencepiece
+nltk
+astor
+inflect
+
+# Code Parsing
+# For C/C++ (install gcc/clang first if not present)
+# pycparser
+# For multiple languages (requires C compiler)
+tree_sitter
+tree_sitter_c==0.23.0
+tree_sitter_cpp
+tree_sitter_go
+tree_sitter_java
+# tree_sitter_python
+javalang @ git+https://github.com/smkang96/javalang-plus.git@5d48dc31c70afb0bf1295d504657ef72ede5eac0
+# astroid
+
+# Data Handling & Utilities
+numpy
+pandas
+scikit-learn
+networkx # for graph manipulation/visualization
+matplotlib
+seaborn
+tqdm # for progress bars
+
+# Notebooks
+jupyterlab
+ipywidgets # for interactive elements in notebooks
+
+# Configuration
+pyyaml
+
+# Testing
+pytest
+pytest-cov
+
+# Linting, Formatting & Type Checking
+ruff
+mypy
+
+# Documentation
+sphinx
+sphinx-rtd-theme
