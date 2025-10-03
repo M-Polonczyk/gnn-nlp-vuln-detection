@@ -20,45 +20,54 @@ from gnn_vuln_detection.naming_analysis.analyzer import (
 from gnn_vuln_detection.naming_analysis.patterns import identify_naming_convention
 
 
-def visualize_ast(ast_root: Node) -> None:
-    """Visualize the AST structure."""
+import matplotlib.pyplot as plt
+import networkx as nx
+from networkx.drawing.nx_pydot import graphviz_layout
+
+def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> None:
+    """Visualize the AST structure with scalable layout for large graphs."""
     graph = convert_ast_to_graph(ast_root)
     print("--- C Graph ---")
-
     print(f"Graph: {graph}")
     print("Nodes:", graph.number_of_nodes())
     print("Edges:", graph.number_of_edges())
-    # for node in graph.nodes(data=True):
-    #     print(f"Node: {node[0]}, Data: {node[1]}")
 
-    # Display the graph using networkx and matplotlib
-    plt.figure(figsize=(16, 8))
-    pos = nx.spring_layout(graph, k=2, iterations=100, seed=42)
+    # Limit graph size for visualization
+    if graph.number_of_nodes() > max_nodes:
+        print(f"⚠️ Graph too large ({graph.number_of_nodes()} nodes). "
+              f"Showing first {max_nodes} nodes only.")
+        # Take subgraph of first N nodes
+        sub_nodes = list(graph.nodes())[:max_nodes]
+        graph = graph.subgraph(sub_nodes)
 
-    # Draw nodes with better styling
+    # Use Graphviz (better for large hierarchical structures like ASTs)
+    try:
+        pos = graphviz_layout(graph, prog="dot")  
+    except:
+        # Fallback if graphviz not available
+        pos = nx.spring_layout(graph, k=1, iterations=50, seed=42)
+
+    plt.figure(figsize=(20, 12))
+
+    # Draw nodes
     nx.draw_networkx_nodes(
-        graph,
-        pos,
+        graph, pos,
         node_color="lightsteelblue",
-        node_size=800,
+        node_size=300,
         alpha=0.9,
         edgecolors="navy",
-        linewidths=1.5,
+        linewidths=1.0,
     )
 
-    # Draw edges with better styling
+    # Draw edges
     nx.draw_networkx_edges(
-        graph,
-        pos,
+        graph, pos,
         edge_color="darkgray",
-        alpha=0.6,
-        arrows=True,
-        arrowsize=20,
-        arrowstyle="->",
-        width=1.2,
+        alpha=0.5,
+        arrows=False
     )
 
-    # Draw labels showing node_type property
+    # Node labels (truncate long types)
     labels = {
         node: (
             data.get("node_type", str(node))[:15] + "..."
@@ -67,20 +76,21 @@ def visualize_ast(ast_root: Node) -> None:
         )
         for node, data in graph.nodes(data=True)
     }
+
     nx.draw_networkx_labels(
-        graph,
-        pos,
+        graph, pos,
         labels=labels,
-        font_size=9,
+        font_size=8,
         font_weight="bold",
         font_color="black",
     )
 
+    plt.axis("off")
+    plt.title("AST Graph Visualization", fontsize=14)
     plt.tight_layout()
-    plt.title("AST Graph Visualization")
+    # plt.savefig(filename, dpi=300)
     plt.show()
-    plt.clf()
-
+    plt.close()
 
 def show_ast_structure(ast_root: Node) -> None:
     """Print the structure of the AST."""
@@ -177,10 +187,9 @@ def main() -> None:
         print("Results")
         print("-" * 60)
         print(f"Naming conventions followed: {conventions}")
-        # print(f"PyTorch Geometric Data: {pyg_data}")
+        print(f"PyTorch Geometric Data: {pyg_data}")
         # show_ast_structure(analyzed_code)
-        # if visualize:
-        #     visualize_ast(analyzed_code)
+        visualize_ast(analyzed_code)
         identifiers = extract_identifiers_from_node(analyzed_code, c_code.encode(), language="c")
         print("Extracted identifiers")
         for ident in identifiers:
