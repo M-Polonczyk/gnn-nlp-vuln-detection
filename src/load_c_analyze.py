@@ -24,6 +24,42 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from networkx.drawing.nx_pydot import graphviz_layout
 
+from pyvis.network import Network
+
+
+def visualize_ast_interactive(
+    ast_root: Node, filename="ast_graph.html", max_nodes=2000
+) -> None:
+    """Visualize AST with pyvis (interactive, zoomable, scrollable)."""
+    graph = convert_ast_to_graph(ast_root)
+
+    print("--- C Graph ---")
+    print(f"Graph: {graph}")
+    print("Nodes:", graph.number_of_nodes())
+    print("Edges:", graph.number_of_edges())
+
+    net = Network(height="1000px", width="100%", directed=True, notebook=False)
+    net.toggle_physics(True)
+
+    for node, data in graph.nodes(data=True):
+        label = data.get("node_type", str(node))
+        short_label = label if len(label) < 20 else label[:17] + "..."
+        net.add_node(
+            n_id=node,
+            label=short_label,
+            title=f"Node ID: {node}<br>Type: {label}",
+            color="lightblue",
+            shape="ellipse",
+        )
+
+    for u, v in graph.edges():
+        net.add_edge(u, v, color="gray")
+
+    # net.show(filename)
+    net.write_html(filename)
+    print(f"AST graph saved to {filename}. Open it in your browser.")
+
+
 def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> None:
     """Visualize the AST structure with scalable layout for large graphs."""
     graph = convert_ast_to_graph(ast_root)
@@ -34,15 +70,17 @@ def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> No
 
     # Limit graph size for visualization
     if graph.number_of_nodes() > max_nodes:
-        print(f"⚠️ Graph too large ({graph.number_of_nodes()} nodes). "
-              f"Showing first {max_nodes} nodes only.")
+        print(
+            f"⚠️ Graph too large ({graph.number_of_nodes()} nodes). "
+            f"Showing first {max_nodes} nodes only."
+        )
         # Take subgraph of first N nodes
         sub_nodes = list(graph.nodes())[:max_nodes]
         graph = graph.subgraph(sub_nodes)
 
     # Use Graphviz (better for large hierarchical structures like ASTs)
     try:
-        pos = graphviz_layout(graph, prog="dot")  
+        pos = graphviz_layout(graph, prog="dot")
     except:
         # Fallback if graphviz not available
         pos = nx.spring_layout(graph, k=1, iterations=50, seed=42)
@@ -51,7 +89,8 @@ def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> No
 
     # Draw nodes
     nx.draw_networkx_nodes(
-        graph, pos,
+        graph,
+        pos,
         node_color="lightsteelblue",
         node_size=300,
         alpha=0.9,
@@ -60,12 +99,7 @@ def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> No
     )
 
     # Draw edges
-    nx.draw_networkx_edges(
-        graph, pos,
-        edge_color="darkgray",
-        alpha=0.5,
-        arrows=False
-    )
+    nx.draw_networkx_edges(graph, pos, edge_color="darkgray", alpha=0.5, arrows=False)
 
     # Node labels (truncate long types)
     labels = {
@@ -78,7 +112,8 @@ def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> No
     }
 
     nx.draw_networkx_labels(
-        graph, pos,
+        graph,
+        pos,
         labels=labels,
         font_size=8,
         font_weight="bold",
@@ -91,6 +126,7 @@ def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> No
     # plt.savefig(filename, dpi=300)
     plt.show()
     plt.close()
+
 
 def show_ast_structure(ast_root: Node) -> None:
     """Print the structure of the AST."""
@@ -162,7 +198,13 @@ def main() -> None:
 
     # Load sample C code from a data/raw/example_code directory
     # sample_code_dir = Path(__file__).parent / "data" / "raw" / "example_code"
-    sample_code_dir = Path(__file__).parent.parent / "data" / "raw" / "example_code" / "non_vulnerable"
+    sample_code_dir = (
+        Path(__file__).parent.parent
+        / "data"
+        / "raw"
+        / "example_code"
+        / "non_vulnerable"
+    )
     c_files = {}
 
     if not sample_code_dir.exists():
@@ -170,6 +212,8 @@ def main() -> None:
         return
 
     for file_path in sample_code_dir.glob("**/*.c"):
+        if not file_path.name.endswith(".c"):
+            continue
         with file_path.open("r", encoding="utf-8") as f:
             c_code = f.read()
 
@@ -188,9 +232,12 @@ def main() -> None:
         print("-" * 60)
         print(f"Naming conventions followed: {conventions}")
         print(f"PyTorch Geometric Data: {pyg_data}")
-        # show_ast_structure(analyzed_code)
         visualize_ast(analyzed_code)
-        identifiers = extract_identifiers_from_node(analyzed_code, c_code.encode(), language="c")
+        visualize_ast_interactive(analyzed_code)
+        identifiers = extract_identifiers_from_node(
+            analyzed_code, c_code.encode(), language="c"
+        )
+        show_ast_structure(analyzed_code)
         print("Extracted identifiers")
         for ident in identifiers:
             meaningful = is_meaningful(ident["code"])
@@ -198,7 +245,10 @@ def main() -> None:
             # print(f"  Identifier: {ident}, Meaningful: {meaningful}")
             # print(f"  Convention: {convention}")
             if not meaningful and convention == "unknown":
-                print(f"[WARNING] Identifier '{ident['code']}' is not meaningful and follows no known convention.")
+                print(
+                    f"[WARNING] Identifier '{ident['code']}' is not meaningful and follows no known convention."
+                )
+
 
 if __name__ == "__main__":
     main()
