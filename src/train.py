@@ -8,7 +8,8 @@ import torch
 from torch_geometric.loader import DataLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from gnn_vuln_detection.dataset import create_cwe_dataset
+from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
+from gnn_vuln_detection.dataset.dataset_loader import DiverseVulDatasetLoader
 from gnn_vuln_detection.training import metrics, train_cwe_classifier
 from gnn_vuln_detection.utils import config_loader
 
@@ -18,16 +19,15 @@ def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
     import random
 
     # Shuffle the dataset
-    dataset_list = list(dataset)
-    random.shuffle(dataset_list)
+    random.shuffle(dataset)
 
-    total_size = len(dataset_list)
+    total_size = len(dataset)
     train_size = int(total_size * train_ratio)
     val_size = int(total_size * val_ratio)
 
-    train_set = dataset_list[:train_size]
-    val_set = dataset_list[train_size : train_size + val_size]
-    test_set = dataset_list[train_size + val_size :]
+    train_set = dataset[:train_size]
+    val_set = dataset[train_size : train_size + val_size]
+    test_set = dataset[train_size + val_size :]
 
     return train_set, val_set, test_set
 
@@ -50,8 +50,16 @@ def main() -> None:
     print(f"Using device: {device}")
 
     # Load a diverse vulnerability dataset
-    dataset = create_cwe_dataset(dataset_config)
-    train, val, test = split_dataset(dataset)
+    # dataset = create_cwe_dataset(dataset_config)
+    # dataset = dataset.shuffle()
+
+    diversevul_loader = DiverseVulDatasetLoader(
+        dataset_path=dataset_config["diversevul"]["dataset_path"],
+    )
+    samples = diversevul_loader.load_dataset()
+    converter = DataclassToGraphConverter()
+    data = [converter.code_sample_to_pyg_data(sample) for sample in samples]
+    train, val, test = split_dataset(data)
     # Create DataLoader objects
     train_loader = DataLoader(
         train,
@@ -68,11 +76,14 @@ def main() -> None:
         batch_size=training_config["batch_size"],
         shuffle=False,
     )
+    print(
+        f"Dataset split: {len(train)} train, {len(val)} val, {len(test)} test samples",
+    )
 
     # Train a vulnerability detector
     model, best_val_acc = train_cwe_classifier(
-        train_loader=train_loader,  # Fixed: use actual DataLoader
-        val_loader=val_loader,  # Fixed: use actual DataLoader
+        train_loader=train_loader,
+        val_loader=val_loader,
         model_config=model_params["gcn_standard"],
         num_epochs=training_config["epochs"],
         learning_rate=training_config["learning_rate"],

@@ -35,7 +35,7 @@ def create_cwe_dataset(dataset_config: dict[str, Any] | None = None) -> Vulnerab
         root=dataset_config.get("root_data_dir", "data"),
         samples=samples,
         include_edge_features=True,
-        cache_dir="data/cache",
+        # cache_dir="data/cache",
     )
 
 

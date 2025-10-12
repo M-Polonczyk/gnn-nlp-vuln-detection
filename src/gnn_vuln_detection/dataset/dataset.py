@@ -9,12 +9,12 @@ from torch_geometric.data import Data, Dataset, download_url
 from torch_geometric.utils import from_networkx
 from tree_sitter import Node
 
+from gnn_vuln_detection.code_representation.code_representation import CodeSample
 from gnn_vuln_detection.code_representation.graph_builder import GraphType
 from gnn_vuln_detection.data_processing.graph_converter import (
     ASTToGraphConverter,
     DataclassToGraphConverter,
 )
-from src.gnn_vuln_detection.code_representation.code_representation import CodeSample
 
 
 class VulnerabilityDataset(Dataset):
@@ -49,29 +49,55 @@ class VulnerabilityDataset(Dataset):
 
     @property
     def raw_file_names(self):
-        return ["some_file_1", "some_file_2", ...]
+        return []
 
     @property
     def processed_file_names(self):
-        return ["data_1.pt", "data_2.pt", ...]
+        return []
 
     def download(self):
-        return download_url("", self.raw_dir)
+        if not os.path.exists(self.raw_dir):
+            os.makedirs(self.raw_dir)
+            return download_url("", self.raw_dir)
+        return None
 
     def process(self) -> None:
-        idx = 0
-        for raw_path in self.raw_paths:
-            # Read data from `raw_path`.
-            data = Data()
+        # for raw_path in self.raw_paths:
+        #     data = DiverseVulDatasetLoader.load_dataset()
 
-            if self.pre_filter is not None and not self.pre_filter(data):
-                continue
+        #     if self.pre_filter is not None and not self.pre_filter(data):
+        #         continue
 
-            if self.pre_transform is not None:
-                data = self.pre_transform(data)
+        #     if self.pre_transform is not None:
+        #         data = self.pre_transform(data)
 
-            torch.save(data, os.path.join(self.processed_dir, f"data_{idx}.pt"))
-            idx += 1
+        #     torch.save(data, raw_path.replace(self.raw_dir, self.processed_dir).split(".")[0] + ".pt")
+        dataset = []
+        for idx, sample in enumerate(self.samples):
+            if isinstance(sample, CodeSample):
+                data = self.dataclass_converter.code_sample_to_pyg_data(
+                    sample,
+                    self.graph_type,
+                    self.include_edge_features,
+                )
+            elif isinstance(sample, Node):  # Tree-sitter Node
+                # Assume label 0 for unlabeled samples
+                data = self.ast_converter.ast_to_pyg_data(
+                    sample,
+                    0,
+                    self.graph_type,
+                    self.include_edge_features,
+                )
+            elif isinstance(sample, nx.DiGraph):
+                # Convert NetworkX graph to PyG Data
+                data = from_networkx(sample)
+                if not hasattr(data, "y"):
+                    data.y = torch.tensor([0], dtype=torch.long)
+            else:
+                msg = f"Unsupported sample type: {type(sample)}"
+                raise ValueError(msg)
+            dataset.append(data)
+        torch.save(dataset, os.path.join(self.processed_dir, f"data_{idx}.pt"))
 
     def len(self) -> int:
         return len(self.samples)
