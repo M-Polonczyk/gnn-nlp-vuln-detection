@@ -5,10 +5,10 @@ import sys
 from pathlib import Path
 
 import torch
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from gnn_vuln_detection.data_processing.dataset_loader import DiverseVulDatasetLoader
+from gnn_vuln_detection.dataset import VulnerabilityDataset
 from gnn_vuln_detection.training import metrics, train_vulnerability_detector
 from gnn_vuln_detection.utils import config_loader
 
@@ -50,7 +50,7 @@ def main() -> None:
     print(f"Using device: {device}")
 
     # Load a diverse vulnerability dataset
-    dataset_loader = DiverseVulDatasetLoader(
+    dataset_loader = VulnerabilityDataset(
         dataset_config["diversevul"]["dataset_path"],
         dataset_config["diversevul"]["metadata_path"],
     )

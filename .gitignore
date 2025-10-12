@@ -51,6 +51,9 @@ coverage.xml
 .hypothesis/
 .pytest_cache/
 
+# MyPy
+.mypy_cache/
+
 # Environments
 .env
 .venv

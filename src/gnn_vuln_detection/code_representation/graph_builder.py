@@ -38,7 +38,9 @@ class GraphBuilder:
         self.variable_uses: dict[str, list[int]] = {}
 
     def build_graph(
-        self, ast_root: Node, graph_type: GraphType = GraphType.AST,
+        self,
+        ast_root: Node,
+        graph_type: GraphType = GraphType.AST,
     ) -> nx.DiGraph:
         """Build a graph from AST root node
 
@@ -160,7 +162,9 @@ class GraphBuilder:
         return stats
 
     def build_ast_edges(
-        self, ast_root: Node, node_mapping: dict[Node, int],
+        self,
+        ast_root: Node,
+        node_mapping: dict[Node, int],
     ) -> torch.Tensor:
         """
         Build edge index tensor for AST structure.

@@ -8,16 +8,13 @@ This module provides utilities to convert:
 4. Collections of any of the above to PyG datasets
 """
 
-import os
-from dataclasses import dataclass, fields
-from pathlib import Path
+from dataclasses import asdict, fields
 from typing import Any
 
 import networkx as nx
 import numpy as np
 import torch
-from torch_geometric.data import Data, Dataset, download_url
-from torch_geometric.utils import from_networkx
+from torch_geometric.data import Data
 from tree_sitter import Node
 
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
@@ -25,32 +22,7 @@ from gnn_vuln_detection.code_representation.feature_extractor import (
     GraphFeatureExtractor,
 )
 from gnn_vuln_detection.code_representation.graph_builder import GraphBuilder, GraphType
-
-
-@dataclass
-class CodeSample:
-    """Dataclass representing a code sample for vulnerability detection."""
-
-    code: str
-    label: int  # 0: safe, 1: vulnerable
-    language: str = "c"
-    cwe_id: str | None = None
-    file_path: str | None = None
-    function_name: str | None = None
-    line_numbers: tuple[int, int] | None = None
-    metadata: dict[str, Any] | None = None
-
-
-@dataclass
-class GraphFeatures:
-    """Dataclass for extracted graph features."""
-
-    node_features: np.ndarray
-    edge_index: np.ndarray
-    edge_features: np.ndarray | None = None
-    node_types: list[str] | None = None
-    edge_types: list[str] | None = None
-    global_features: np.ndarray | None = None
+from gnn_vuln_detection.dataset import CodeSample
 
 
 class ASTToGraphConverter:
@@ -176,7 +148,7 @@ class DataclassToGraphConverter:
 
         # Parse code to AST
         if sample.language != self.ast_parser.language:
-            self.ast_parser = ASTParser(sample.language)
+            self.ast_parser = ASTParser(sample.language.value)
 
         ast_root = self.ast_parser.parse_code_to_ast(sample.code)
 
@@ -189,14 +161,12 @@ class DataclassToGraphConverter:
         )
 
         # Add metadata as additional attributes
-        if sample.cwe_id:
-            data.cwe_id = sample.cwe_id
-        if sample.file_path:
-            data.file_path = sample.file_path
+        if sample.cwe_ids:
+            data.cwe_ids = sample.cwe_ids
         if sample.function_name:
             data.function_name = sample.function_name
         if sample.metadata:
-            for key, value in sample.metadata.items():
+            for key, value in asdict(sample.metadata).items():
                 setattr(data, key, value)
 
         return data
@@ -227,218 +197,10 @@ class DataclassToGraphConverter:
         return features
 
 
-def load_from_json_dataset(
-    json_file: str,
-    code_field: str = "code",
-    label_field: str = "label",
-    language: str = "c",
-) -> list[CodeSample]:
-    """Load CodeSample objects from JSON dataset.
-
-    Args:
-        json_file: Path to JSON file
-        code_field: Field name containing code
-        label_field: Field name containing label
-        language: Programming language
-
-    Returns:
-        List of CodeSample objects
-    """
-    import json
-
-    with open(json_file) as f:
-        data = json.load(f)
-
-    samples = []
-    for item in data:
-        sample = CodeSample(
-            code=item[code_field],
-            label=item[label_field],
-            language=language,
-            cwe_id=item.get("cwe_id"),
-            file_path=item.get("file_path"),
-            function_name=item.get("function_name"),
-            metadata={
-                k: v
-                for k, v in item.items()
-                if k
-                not in [code_field, label_field, "cwe_id", "file_path", "function_name"]
-            },
-        )
-        samples.append(sample)
-
-    return samples
-
-
-# TODO: Move to dataset.py
-
-class VulnerabilityDataset(Dataset):
-    """PyTorch Geometric Dataset for vulnerability detection."""
-
-    def __init__(
-        self,
-        samples: list[CodeSample | Node | nx.DiGraph],
-        root: str | None = None,
-        transform=None,
-        pre_transform=None,
-        pre_filter=None,
-        graph_type: GraphType = GraphType.AST,
-        include_edge_features: bool = False,
-        cache_dir: str | None = None,
-    ) -> None:
-        self.samples = samples
-        self.graph_type = graph_type
-        self.include_edge_features = include_edge_features
-        self.cache_dir = Path(cache_dir) if cache_dir else None
-
-        # Initialize converters
-        self.dataclass_converter = DataclassToGraphConverter()
-        self.ast_converter = ASTToGraphConverter()
-
-        super().__init__(root, transform, pre_transform, pre_filter)
-
-        if self.cache_dir:
-            self.cache_dir.mkdir(parents=True, exist_ok=True)
-
-    @property
-    def raw_file_names(self):
-        return ["some_file_1", "some_file_2", ...]
-
-    @property
-    def processed_file_names(self):
-        return ["data_1.pt", "data_2.pt", ...]
-
-    def download(self):
-        path = download_url("", self.raw_dir)
-        return path
-
-    def process(self):
-        idx = 0
-        for raw_path in self.raw_paths:
-            # Read data from `raw_path`.
-            data = Data()
-
-            if self.pre_filter is not None and not self.pre_filter(data):
-                continue
-
-            if self.pre_transform is not None:
-                data = self.pre_transform(data)
-
-            torch.save(data, os.path.join(self.processed_dir, f"data_{idx}.pt"))
-            idx += 1
-
-    def len(self) -> int:
-        return len(self.samples)
-
-    def get(self, idx: int) -> Data:
-        """Get a single data sample."""
-
-        # Check cache first
-        if self.cache_dir:
-            cache_file = self.cache_dir / f"sample_{idx}.pt"
-            if cache_file.exists():
-                return torch.load(cache_file)
-
-        sample = self.samples[idx]
-
-        # Convert based on sample type
-        if isinstance(sample, CodeSample):
-            data = self.dataclass_converter.code_sample_to_pyg_data(
-                sample,
-                self.graph_type,
-                self.include_edge_features,
-            )
-        elif isinstance(sample, Node):  # Tree-sitter Node
-            # Assume label 0 for unlabeled samples
-            data = self.ast_converter.ast_to_pyg_data(
-                sample,
-                0,
-                self.graph_type,
-                self.include_edge_features,
-            )
-        elif isinstance(sample, nx.DiGraph):
-            # Convert NetworkX graph to PyG Data
-            data = from_networkx(sample)
-            if not hasattr(data, "y"):
-                data.y = torch.tensor([0], dtype=torch.long)
-        else:
-            msg = f"Unsupported sample type: {type(sample)}"
-            raise ValueError(msg)
-
-        # Cache the result
-        if self.cache_dir:
-            cache_file = self.cache_dir / f"sample_{idx}.pt"
-            torch.save(data, cache_file)
-
-        return data
-
-
-
-def create_vulnerability_dataset(
-    code_samples: list[CodeSample],
-    graph_type: GraphType = GraphType.AST,
-    include_edge_features: bool = False,
-    cache_dir: str | None = None,
-    train_split: float = 0.8,
-    val_split: float = 0.1,
-) -> tuple[VulnerabilityDataset, VulnerabilityDataset, VulnerabilityDataset]:
-    """Create train/val/test datasets from code samples.
-
-    Args:
-        code_samples: List of CodeSample objects
-        graph_type: Type of graph to build
-        include_edge_features: Whether to include edge features
-        cache_dir: Directory to cache processed data
-        train_split: Fraction for training set
-        val_split: Fraction for validation set
-
-    Returns:
-        Tuple of (train_dataset, val_dataset, test_dataset)
-    """
-
-    # Shuffle samples
-    import random
-
-    samples = code_samples.copy()
-    random.shuffle(samples)
-
-    # Split data
-    n_total = len(samples)
-    n_train = int(n_total * train_split)
-    n_val = int(n_total * val_split)
-
-    train_samples = samples[:n_train]
-    val_samples = samples[n_train : n_train + n_val]
-    test_samples = samples[n_train + n_val :]
-
-    # Create datasets
-    train_dataset = VulnerabilityDataset(
-        train_samples,
-        graph_type=graph_type,
-        include_edge_features=include_edge_features,
-        cache_dir=f"{cache_dir}/train" if cache_dir else None,
-    )
-
-    val_dataset = VulnerabilityDataset(
-        val_samples,
-        graph_type=graph_type,
-        include_edge_features=include_edge_features,
-        cache_dir=f"{cache_dir}/val" if cache_dir else None,
-    )
-
-    test_dataset = VulnerabilityDataset(
-        test_samples,
-        graph_type=graph_type,
-        include_edge_features=include_edge_features,
-        cache_dir=f"{cache_dir}/test" if cache_dir else None,
-    )
-
-    return train_dataset, val_dataset, test_dataset
-
-
 # Example usage functions
 def example_dataclass_conversion():
     """Example of converting dataclass to PyG Data."""
+    from src.gnn_vuln_detection.dataset.dataset import LanguageEnum
 
     # Create sample data
     sample = CodeSample(
@@ -450,8 +212,8 @@ def example_dataclass_conversion():
         }
         """,
         label=1,  # Vulnerable
-        language="c",
-        cwe_id="CWE-120",
+        language=LanguageEnum.C,
+        cwe_ids=["CWE-120"],
         function_name="vulnerable_function",
     )
 
@@ -494,30 +256,6 @@ def example_ast_conversion():
     return data
 
 
-def example_dataset_creation():
-    """Example of creating a complete dataset."""
-
-    # Create sample data
-    samples = [
-        CodeSample("int x = 5;", 0, "c"),
-        CodeSample("char buf[10]; strcpy(buf, long_string);", 1, "c"),
-        CodeSample("int safe_add(int a, int b) { return a + b; }", 0, "c"),
-    ]
-
-    # Create datasets
-    train_ds, val_ds, test_ds = create_vulnerability_dataset(
-        samples,
-        graph_type=GraphType.AST,
-        cache_dir="cache/vulnerability_detection",
-    )
-
-    print(f"Train: {len(train_ds)}, Val: {len(val_ds)}, Test: {len(test_ds)}")
-
-    # Load a sample
-    sample_data = train_ds[0]
-    print(f"Sample shape: {sample_data.x.shape}")
-
-    return train_ds, val_ds, test_ds
 
 
 if __name__ == "__main__":
@@ -527,6 +265,3 @@ if __name__ == "__main__":
 
     print("\n=== AST Conversion Example ===")
     example_ast_conversion()
-
-    print("\n=== Dataset Creation Example ===")
-    example_dataset_creation()

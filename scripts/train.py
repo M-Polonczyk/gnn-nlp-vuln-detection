@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from src.gnn_vuln_detection.data_processing.dataset_loader import (
     DiverseVulDatasetLoader,
 )
+
 from src.gnn_vuln_detection.models.factory import create_vulnerability_detector
 from src.gnn_vuln_detection.utils import file_loader
 

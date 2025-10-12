@@ -2,11 +2,24 @@
 
 import re
 from collections import Counter
+from dataclasses import dataclass
 from typing import Any
 
 import networkx as nx
 import numpy as np
 from tree_sitter import Node
+
+
+@dataclass
+class GraphFeatures:
+    """Dataclass for extracted graph features."""
+
+    node_features: np.ndarray
+    edge_index: np.ndarray
+    edge_features: np.ndarray | None = None
+    node_types: list[str] | None = None
+    edge_types: list[str] | None = None
+    global_features: np.ndarray | None = None
 
 
 class NodeFeatureExtractor:

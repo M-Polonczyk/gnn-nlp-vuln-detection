@@ -10,6 +10,9 @@ from torch_geometric.data import Data
 from tree_sitter import Node
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from networkx.drawing.nx_pydot import graphviz_layout
+from pyvis.network import Network
+
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
 from gnn_vuln_detection.code_representation.graph_builder import GraphBuilder
 from gnn_vuln_detection.data_processing.graph_converter import ASTToGraphConverter
@@ -20,15 +23,8 @@ from gnn_vuln_detection.naming_analysis.analyzer import (
 from gnn_vuln_detection.naming_analysis.patterns import identify_naming_convention
 
 
-import matplotlib.pyplot as plt
-import networkx as nx
-from networkx.drawing.nx_pydot import graphviz_layout
-
-from pyvis.network import Network
-
-
 def visualize_ast_interactive(
-    ast_root: Node, filename="ast_graph.html", max_nodes=2000
+    ast_root: Node, filename="ast_graph.html", max_nodes=2000,
 ) -> None:
     """Visualize AST with pyvis (interactive, zoomable, scrollable)."""
     graph = convert_ast_to_graph(ast_root)
@@ -72,7 +68,7 @@ def visualize_ast(ast_root: Node, filename="ast_graph.png", max_nodes=500) -> No
     if graph.number_of_nodes() > max_nodes:
         print(
             f"⚠️ Graph too large ({graph.number_of_nodes()} nodes). "
-            f"Showing first {max_nodes} nodes only."
+            f"Showing first {max_nodes} nodes only.",
         )
         # Take subgraph of first N nodes
         sub_nodes = list(graph.nodes())[:max_nodes]
@@ -235,7 +231,7 @@ def main() -> None:
         visualize_ast(analyzed_code)
         visualize_ast_interactive(analyzed_code)
         identifiers = extract_identifiers_from_node(
-            analyzed_code, c_code.encode(), language="c"
+            analyzed_code, c_code.encode(), language="c",
         )
         show_ast_structure(analyzed_code)
         print("Extracted identifiers")
@@ -246,7 +242,7 @@ def main() -> None:
             # print(f"  Convention: {convention}")
             if not meaningful and convention == "unknown":
                 print(
-                    f"[WARNING] Identifier '{ident['code']}' is not meaningful and follows no known convention."
+                    f"[WARNING] Identifier '{ident['code']}' is not meaningful and follows no known convention.",
                 )
 
 
