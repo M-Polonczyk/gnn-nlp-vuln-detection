@@ -8,8 +8,8 @@ import torch
 from torch_geometric.loader import DataLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from gnn_vuln_detection.dataset import VulnerabilityDataset
-from gnn_vuln_detection.training import metrics, train_vulnerability_detector
+from gnn_vuln_detection.dataset import create_cwe_dataset
+from gnn_vuln_detection.training import metrics, train_cwe_classifier
 from gnn_vuln_detection.utils import config_loader
 
 
@@ -50,41 +50,27 @@ def main() -> None:
     print(f"Using device: {device}")
 
     # Load a diverse vulnerability dataset
-    dataset_loader = VulnerabilityDataset(
-        dataset_config["diversevul"]["dataset_path"],
-        dataset_config["diversevul"]["metadata_path"],
-    )
-    dataset = dataset_loader.load_dataset()
-    print(f"Loaded dataset with {len(dataset)} samples")
-    # Split dataset into train, validation, and test sets
-    train_set, val_set, test_set = split_dataset(dataset)
-    print(f"Train set: {len(train_set)} samples")
-    print(f"Validation set: {len(val_set)} samples")
-    print(f"Test set: {len(test_set)} samples")
-    # Convert dataset to PyTorch Geometric format
-    train_graphs = dataset_loader.convert_to_pyg_graphs(train_set)
-    val_graphs = dataset_loader.convert_to_pyg_graphs(val_set)
-    test_graphs = dataset_loader.convert_to_pyg_graphs(test_set)
-
+    dataset = create_cwe_dataset(dataset_config)
+    train, val, test = split_dataset(dataset)
     # Create DataLoader objects
     train_loader = DataLoader(
-        train_graphs,
+        train,
         batch_size=training_config["batch_size"],
         shuffle=True,
     )
     val_loader = DataLoader(
-        val_graphs,
+        val,
         batch_size=training_config["batch_size"],
         shuffle=False,
     )
     test_loader = DataLoader(
-        test_graphs,
+        test,
         batch_size=training_config["batch_size"],
         shuffle=False,
     )
 
     # Train a vulnerability detector
-    model, best_val_acc = train_vulnerability_detector(
+    model, best_val_acc = train_cwe_classifier(
         train_loader=train_loader,  # Fixed: use actual DataLoader
         val_loader=val_loader,  # Fixed: use actual DataLoader
         model_config=model_params["gcn_standard"],

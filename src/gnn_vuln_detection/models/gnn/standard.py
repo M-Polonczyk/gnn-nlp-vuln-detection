@@ -61,10 +61,7 @@ class VulnerabilityGCN(BaseGNN):
                 self.batch_norms.append(BatchNorm(hidden_dim))
 
         # Classifier head
-        if pool_type == "combined":
-            classifier_input_dim = hidden_dim * 2
-        else:
-            classifier_input_dim = hidden_dim
+        classifier_input_dim = hidden_dim * 2 if pool_type == "combined" else hidden_dim
 
         self.classifier = nn.Sequential(
             nn.Linear(classifier_input_dim, hidden_dim // 2),

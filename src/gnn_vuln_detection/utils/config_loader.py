@@ -22,7 +22,8 @@ def load_config(filename: str) -> dict[str, Any]:
     """
     path = os.path.join(CONFIG_DIR, filename)
     if not os.path.exists(path):
-        raise FileNotFoundError(f"Config file not found: {path}")
+        msg = f"Config file not found: {path}"
+        raise FileNotFoundError(msg)
 
     return load_yaml(path)
 
@@ -35,7 +36,7 @@ def load_all_configs() -> dict[str, dict[str, Any]]:
     """
     configs = {}
     for fname in os.listdir(CONFIG_DIR):
-        if fname.endswith(".yaml") or fname.endswith(".yml"):
+        if fname.endswith((".yaml", ".yml")):
             key = os.path.splitext(fname)[0]
             configs[key] = load_config(fname)
     return configs

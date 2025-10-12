@@ -9,10 +9,12 @@ from typing import Any
 import torch
 from torch_geometric.data import Data
 
+from gnn_vuln_detection.code_representation.code_representation import (
+    CodeMetadata,
+    CodeSample,
+)
 from gnn_vuln_detection.utils.file_loader import load_json
 from gnn_vuln_detection.utils.utils import parse_git_url, save_json
-
-from .dataset import CodeMetadata, CodeSample
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +68,7 @@ class DatasetLoader:
         """Print progress indicator."""
         if (current_idx + 1) % 100 == 0 or current_idx == total_samples - 1:
             success_rate = successful_graphs / (current_idx + 1) * 100
-            print(
+            logger.info(
                 f"Processed {current_idx + 1}/{total_samples} samples, "
                 f"created {successful_graphs} graphs (success rate: {success_rate:.1f}%)",
             )

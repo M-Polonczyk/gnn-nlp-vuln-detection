@@ -1,7 +1,5 @@
 import os
 from collections.abc import Sequence
-from dataclasses import dataclass, field
-from enum import Enum
 from pathlib import Path
 
 import networkx as nx
@@ -12,42 +10,11 @@ from torch_geometric.utils import from_networkx
 from tree_sitter import Node
 
 from gnn_vuln_detection.code_representation.graph_builder import GraphType
-
-
-class LanguageEnum(Enum):
-    C = "c"
-    CPP = "cpp"
-    PYTHON = "python"
-    JAVA = "java"
-    JAVASCRIPT = "javascript"
-    GO = "go"
-    PHP = "php"
-
-
-@dataclass
-class CodeMetadata:
-    """Data class representing metadata for a DiverseVul sample."""
-
-    project: str = ""
-    commit_id: str = ""
-    bug_info: str | None = None
-    commit_url: str | None = None
-    repo_url: str | None = None
-    file_path: str | None = None
-
-@dataclass
-class CodeSample:
-    """Dataclass representing a code sample for vulnerability detection."""
-
-    code: str
-    label: int  # 0: safe, 1: vulnerable
-    language: LanguageEnum = LanguageEnum.C
-    cve_id: str | None = None
-    cwe_ids: list[str] | None = None
-    function_name: str | None = None
-    line_numbers: tuple[int, int] | None = None
-    size: int | None = None
-    metadata: CodeMetadata = field(default_factory=CodeMetadata)
+from gnn_vuln_detection.data_processing.graph_converter import (
+    ASTToGraphConverter,
+    DataclassToGraphConverter,
+)
+from src.gnn_vuln_detection.code_representation.code_representation import CodeSample
 
 
 class VulnerabilityDataset(Dataset):
@@ -64,16 +31,21 @@ class VulnerabilityDataset(Dataset):
         include_edge_features: bool = False,
         cache_dir: str | None = None,
     ) -> None:
+        self.root = root or "./data"
         self.samples = samples
         self.graph_type = graph_type
         self.include_edge_features = include_edge_features
         self.cache_dir = Path(cache_dir) if cache_dir else None
 
+        self.dataclass_converter = DataclassToGraphConverter()
+        self.ast_converter = ASTToGraphConverter()
 
         super().__init__(root, transform, pre_transform, pre_filter)
 
         if self.cache_dir:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # def __getitem__(self, idx: int | list[int]) -> "VulnerabilityDataset":
 
     @property
     def raw_file_names(self):
@@ -84,10 +56,9 @@ class VulnerabilityDataset(Dataset):
         return ["data_1.pt", "data_2.pt", ...]
 
     def download(self):
-        path = download_url("", self.raw_dir)
-        return path
+        return download_url("", self.raw_dir)
 
-    def process(self):
+    def process(self) -> None:
         idx = 0
         for raw_path in self.raw_paths:
             # Read data from `raw_path`.
@@ -147,7 +118,9 @@ class VulnerabilityDataset(Dataset):
 
         return data
 
-    def split(self, ratios: tuple[float, float, float]) -> tuple[list[int], list[int], list[int]]:
+    def split(
+        self, ratios: tuple[float, float, float],
+    ):
         """Split dataset indices into train, validation, and test sets."""
         assert sum(ratios) == 1.0, "Ratios must sum to 1.0"
         total_size = len(self)
@@ -161,4 +134,4 @@ class VulnerabilityDataset(Dataset):
         val_indices = indices[train_end:val_end].tolist()
         test_indices = indices[val_end:].tolist()
 
-        return train_indices, val_indices, test_indices
+        return self[train_indices], self[val_indices], self[test_indices]

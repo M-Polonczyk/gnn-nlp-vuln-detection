@@ -18,11 +18,11 @@ from torch_geometric.data import Data
 from tree_sitter import Node
 
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
+from gnn_vuln_detection.code_representation.code_representation import CodeSample
 from gnn_vuln_detection.code_representation.feature_extractor import (
     GraphFeatureExtractor,
 )
 from gnn_vuln_detection.code_representation.graph_builder import GraphBuilder, GraphType
-from gnn_vuln_detection.dataset import CodeSample
 
 
 class ASTToGraphConverter:
@@ -200,6 +200,7 @@ class DataclassToGraphConverter:
 # Example usage functions
 def example_dataclass_conversion():
     """Example of converting dataclass to PyG Data."""
+    from gnn_vuln_detection.dataset import CodeSample
     from src.gnn_vuln_detection.dataset.dataset import LanguageEnum
 
     # Create sample data

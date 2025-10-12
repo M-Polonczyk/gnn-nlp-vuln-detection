@@ -45,8 +45,8 @@ def save_json(data: list | dict, file_path: Path) -> int:
     try:
         with file_path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
-    except OSError as e:
-        logging.exception("Could not write to JSON file: %s - %s", file_path, e)
+    except OSError:
+        logging.exception("Could not write to JSON file: %s", file_path)
         return 0
     return 1
 

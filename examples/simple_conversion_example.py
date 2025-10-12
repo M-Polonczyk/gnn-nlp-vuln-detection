@@ -7,10 +7,15 @@ This script provides practical examples you can run immediately.
 import torch
 from torch_geometric.loader import DataLoader
 
+from src.gnn_vuln_detection.code_representation.code_representation import (
+    CodeSample,
+)
+
 # Import our converters
 from src.gnn_vuln_detection.data_processing.graph_converter import (
-    CodeSample,
     DataclassToGraphConverter,
+)
+from src.gnn_vuln_detection.dataset import (
     VulnerabilityDataset,
     create_vulnerability_dataset,
 )

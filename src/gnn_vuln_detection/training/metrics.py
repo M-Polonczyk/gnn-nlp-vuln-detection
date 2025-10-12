@@ -18,7 +18,7 @@ class MetricTracker:
     A class to track and store various metrics during model training and evaluation.
     """
 
-    def __init__(self, metric_names):
+    def __init__(self, metric_names) -> None:
         self.metric_names = metric_names
         self.history = {name: [] for name in metric_names}
         self.history["loss"] = []
@@ -59,10 +59,10 @@ class MetricTracker:
 
         return plt
 
-    def update(self, metrics, loss_value):
+    def update(self, metrics, loss_value) -> None:
         """Updates the stored metric history."""
         if not isinstance(metrics, dict):
-            metrics = {k: v for k, v in zip(self.metric_names, metrics, strict=False)}
+            metrics = dict(zip(self.metric_names, metrics, strict=False))
         for name, value in metrics.items():
             self.history[name].append(value)
         self.history["loss"].append(loss_value)
@@ -77,7 +77,7 @@ class MetricTracker:
         """Returns the entire metric history."""
         return self.history
 
-    def plot_metrics(self, save_dir="plots", filename_prefix="training"):
+    def plot_metrics(self, save_dir="plots", filename_prefix="training") -> None:
         """
         Plots the training/validation metrics over epochs using matplotlib and seaborn.
         Saves the plots to a specified directory.
@@ -85,7 +85,7 @@ class MetricTracker:
         self._make_metrics(save_dir, filename_prefix)
         plt.show()
 
-    def save_metrics(self, save_dir="plots", filename_prefix="training"):
+    def save_metrics(self, save_dir="plots", filename_prefix="training") -> None:
         """
         Plots the training/validation metrics over epochs using matplotlib and seaborn.
         Saves the plots to a specified directory.
@@ -174,7 +174,7 @@ def calculate_metrics(y_true, y_pred_probs, y_pred_labels, average="binary"):
 
 def plot_confusion_matrix(
     y_true, y_pred_labels, labels, save_dir="plots", filename="confusion_matrix.png",
-):
+) -> None:
     """
     Plots a confusion matrix using seaborn and matplotlib.
 

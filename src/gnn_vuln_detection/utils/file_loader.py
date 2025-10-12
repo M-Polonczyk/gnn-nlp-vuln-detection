@@ -4,7 +4,7 @@ from typing import Any
 import yaml
 
 
-def load_file(file_path):
+def load_file(file_path: str | Path) -> str:
     """
     Load a file and return its content.
 
@@ -36,7 +36,7 @@ def load_file(file_path):
         raise OSError(msg) from e
 
 
-def save_file(file_path, content) -> None:
+def save_file(file_path: str | Path, content: str) -> None:
     """
     Save content to a file.
 
@@ -56,12 +56,12 @@ def save_file(file_path, content) -> None:
     try:
         with file_path.open("w", encoding="utf-8") as f:
             f.write(content)
-    except OSError as e:
-        msg = f"Error writing to file {file_path}: {e}"
+    except OSError:
+        msg = f"Error writing to file {file_path}"
         raise OSError(msg) from e
 
 
-def load_json(file_path) -> list[dict[str, Any]]:
+def load_json(file_path: str | Path) -> list[dict[str, Any]]:
     """
     Load a JSON file and return its content as a dictionary.
 
@@ -86,7 +86,7 @@ def load_json(file_path) -> list[dict[str, Any]]:
         raise ValueError(msg) from e
 
 
-def load_yaml(file_path) -> dict[str, Any]:
+def load_yaml(file_path: str | Path) -> dict[str, Any]:
     """
     Load a YAML file and return its content as a dictionary.
 
@@ -110,7 +110,7 @@ def load_yaml(file_path) -> dict[str, Any]:
         raise ValueError(msg) from e
 
 
-def load_code(file_path):
+def load_code(file_path: str | Path) -> str:
     """
     Load a code file and return its content.
 
