@@ -8,7 +8,6 @@ dependencies = [
     "astor>=0.8.1",
     "inflect>=7.5.0",
     "ipywidgets>=8.1.7",
-    "javalang",
     "jupyterlab>=4.4.7",
     "matplotlib>=3.10.6",
     "mypy>=1.17.1",
@@ -161,19 +160,13 @@ ignore = [
   "S101", # Use of assert detected https://docs.astral.sh/ruff/rules/assert/
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
   "SIM102", # sometimes it's better to nest
-  "UP038", # Checks for uses of isinstance/issubclass that take a tuple
-          # of types for comparison.
-          # Deactivated because it can make the code slow:
-          # https://github.com/astral-sh/ruff/issues/7871
+  "COM812", # missing trailing comma in a list, dict, set, or tuple
 ]
 # The fixes in extend-unsafe-fixes will require
 # provide the `--unsafe-fixes` flag when fixing.
 extend-unsafe-fixes = [
   "UP038",
 ]
-
-[tool.uv.sources]
-javalang = { git = "https://github.com/smkang96/javalang-plus.git", rev = "5d48dc31c70afb0bf1295d504657ef72ede5eac0" }
 
 [dependency-groups]
 dev = [

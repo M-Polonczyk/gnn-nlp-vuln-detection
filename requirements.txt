@@ -22,7 +22,6 @@ tree_sitter_cpp
 tree_sitter_go
 tree_sitter_java
 # tree_sitter_python
-javalang @ git+https://github.com/smkang96/javalang-plus.git@5d48dc31c70afb0bf1295d504657ef72ede5eac0
 # astroid
 
 # Data Handling & Utilities

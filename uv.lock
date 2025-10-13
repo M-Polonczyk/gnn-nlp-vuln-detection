@@ -718,7 +718,6 @@ dependencies = [
     { name = "astor" },
     { name = "inflect" },
     { name = "ipywidgets" },
-    { name = "javalang" },
     { name = "jupyterlab" },
     { name = "matplotlib" },
     { name = "mypy" },
@@ -760,7 +759,6 @@ requires-dist = [
     { name = "astor", specifier = ">=0.8.1" },
     { name = "inflect", specifier = ">=7.5.0" },
     { name = "ipywidgets", specifier = ">=8.1.7" },
-    { name = "javalang", git = "https://github.com/smkang96/javalang-plus.git?rev=5d48dc31c70afb0bf1295d504657ef72ede5eac0" },
     { name = "jupyterlab", specifier = ">=4.4.7" },
     { name = "matplotlib", specifier = ">=3.10.6" },
     { name = "mypy", specifier = ">=1.17.1" },
@@ -957,14 +955,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/7c/1a/3c8edc664e06e6bd06cce40c6b22da5f1429aa4224d0c590f3be21c91ead/isoduration-20.11.0.tar.gz", hash = "sha256:ac2f9015137935279eac671f94f89eb00584f940f5dc49462a0c4ee692ba1bd9", size = 11649, upload-time = "2020-11-01T11:00:00.312Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7b/55/e5326141505c5d5e34c5e0935d2908a74e4561eca44108fbfb9c13d2911a/isoduration-20.11.0-py3-none-any.whl", hash = "sha256:b2904c2a4228c3d44f409c8ae8e2370eb21a26f7ac2ec5446df141dde3452042", size = 11321, upload-time = "2020-11-01T10:59:58.02Z" },
-]
-
-[[package]]
-name = "javalang"
-version = "0.14.1"
-source = { git = "https://github.com/smkang96/javalang-plus.git?rev=5d48dc31c70afb0bf1295d504657ef72ede5eac0#5d48dc31c70afb0bf1295d504657ef72ede5eac0" }
-dependencies = [
-    { name = "six" },
 ]
 
 [[package]]

@@ -21,7 +21,6 @@ help:
 	@echo "  test-ci           Run full CI test suite"
 	@echo ""
 	@echo "Development:"
-	@echo "  install-dev       Install development dependencies"
 	@echo "  clean             Clean up generated files"
 	@echo "  format            Format code (if black is installed)"
 	@echo "  lint              Run linting (if flake8 is installed)"
