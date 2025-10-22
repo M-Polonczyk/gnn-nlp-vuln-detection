@@ -71,7 +71,6 @@ class VulnerabilityGCN(BaseGNN):
         )
 
     def forward(self, x, edge_index, batch):
-
         # # Case 1: single argument -> assume it's a PyG Data object
         # if len(args) == 1:
         #     data = args[0]
@@ -136,3 +135,96 @@ class VulnerabilityGCN(BaseGNN):
 
         return self.classifier(x)
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch_geometric.nn import GCNConv, BatchNorm, global_mean_pool, global_max_pool, global_add_pool
+
+class CWEGCN(BaseGNN):
+    def __init__(
+        self,
+        input_dim,
+        hidden_dim=128,
+        num_classes=25,        # liczba klas CWE (np. top 25)
+        num_layers=3,
+        dropout_rate=0.3,
+        use_batch_norm=True,
+        pool_type="mean",
+    ):
+        super().__init__(
+            input_dim,
+            hidden_dim,
+            num_classes,
+            num_layers,
+            dropout_rate,
+        )
+        self.hidden_dim = hidden_dim
+        self.dropout_rate = dropout_rate
+        self.use_batch_norm = use_batch_norm
+        self.pool_type = pool_type
+
+        # Warstwy GCN
+        self.convs = nn.ModuleList()
+        if use_batch_norm:
+            self.batch_norms = nn.ModuleList()
+
+        # Pierwsza warstwa
+        self.convs.append(GCNConv(input_dim, hidden_dim))
+        if use_batch_norm:
+            self.batch_norms.append(BatchNorm(hidden_dim))
+
+        # Warstwy ukryte
+        for _ in range(num_layers - 2):
+            self.convs.append(GCNConv(hidden_dim, hidden_dim))
+            if use_batch_norm:
+                self.batch_norms.append(BatchNorm(hidden_dim))
+
+        # Ostatnia warstwa konwolucyjna (jeśli więcej niż jedna warstwa)
+        if num_layers > 1:
+            self.convs.append(GCNConv(hidden_dim, hidden_dim))
+            if use_batch_norm:
+                self.batch_norms.append(BatchNorm(hidden_dim))
+
+        # Głowica klasyfikatora
+        classifier_input_dim = hidden_dim * 2 if pool_type == "combined" else hidden_dim
+        self.classifier = nn.Sequential(
+            nn.Linear(classifier_input_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout_rate),
+            nn.Linear(hidden_dim // 2, num_classes),  # num_classes = 25 (top CWE)
+        )
+
+    def forward(self, x, edge_index, batch):
+        # Warstwy GCN z opcjonalnym BatchNorm i Dropout
+        if self.use_batch_norm and len(self.batch_norms) > 0:
+            for conv, bn in zip(self.convs, self.batch_norms, strict=False):
+                x = conv(x, edge_index)
+                x = bn(x)
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
+            # Jeśli jest więcej warstw konwolucyjnych niż warstw BN
+            if len(self.convs) > len(self.batch_norms):
+                for i in range(len(self.batch_norms), len(self.convs)):
+                    x = self.convs[i](x, edge_index)
+                    x = F.relu(x)
+                    x = F.dropout(x, p=self.dropout_rate, training=self.training)
+        else:
+            for conv in self.convs:
+                x = conv(x, edge_index)
+                x = F.relu(x)
+                x = F.dropout(x, p=self.dropout_rate, training=self.training)
+
+        # Globalny pooling grafu
+        if self.pool_type == "mean":
+            x = global_mean_pool(x, batch)
+        elif self.pool_type == "max":
+            x = global_max_pool(x, batch)
+        elif self.pool_type == "add":
+            x = global_add_pool(x, batch)
+        else:  # combined mean+max
+            x_mean = global_mean_pool(x, batch)
+            x_max  = global_max_pool(x, batch)
+            x = torch.cat([x_mean, x_max], dim=1)
+
+        # Klasyfikacja finalna (logity klas CWE)
+        return self.classifier(x)

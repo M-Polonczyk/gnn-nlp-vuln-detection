@@ -91,7 +91,9 @@ class GNNModelFactory:
 
     @classmethod
     def get_recommended_config(
-        cls, dataset_size: int, complexity: str = "medium",
+        cls,
+        dataset_size: int,
+        complexity: str = "medium",
     ) -> dict[str, dict[str, Any]]:
         """
         Get recommended configurations based on dataset size and complexity.

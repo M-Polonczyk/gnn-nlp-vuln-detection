@@ -9,7 +9,8 @@ from src.gnn_vuln_detection.models.gnn import BaseGNN
 from .metrics import MetricTracker, calculate_metrics
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 
@@ -26,7 +27,15 @@ def train_loop(
     """
 
     def train_epoch():
-        nonlocal model, train_loader, optimizer, device, criterion, val_loader, best_val_acc, best_model_state
+        nonlocal \
+            model, \
+            train_loader, \
+            optimizer, \
+            device, \
+            criterion, \
+            val_loader, \
+            best_val_acc, \
+            best_model_state
         model.train()
         train_loss = 0
         train_correct = 0

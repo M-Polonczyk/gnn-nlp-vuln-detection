@@ -14,7 +14,8 @@ from . import losses, metrics
 from .train_loop import train_loop
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
 )
 
 __all__ = [
@@ -56,7 +57,12 @@ def train_vulnerability_detector(
     )
 
     return train_loop(
-        model, train_loader, val_loader, optimizer, num_epochs, device,
+        model,
+        train_loader,
+        val_loader,
+        optimizer,
+        num_epochs,
+        device,
     )  # model, best_val_acc
 
 
@@ -120,5 +126,10 @@ def train_cwe_classifier(
     )
 
     return train_loop(
-        model, train_loader, val_loader, optimizer, num_epochs, device,
+        model,
+        train_loader,
+        val_loader,
+        optimizer,
+        num_epochs,
+        device,
     )  # model, best_val_acc

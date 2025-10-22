@@ -36,7 +36,7 @@ class MetricTracker:
         # Plot Loss
         plt.figure(figsize=(10, 6))
         sns.lineplot(x=epochs, y=self.history["loss"], marker="o")
-        plt.title(f'{filename_prefix.replace("_", " ").title()} Loss Over Epochs')
+        plt.title(f"{filename_prefix.replace('_', ' ').title()} Loss Over Epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.grid(True)
@@ -50,7 +50,7 @@ class MetricTracker:
                 plt.figure(figsize=(10, 6))
                 sns.lineplot(x=epochs, y=self.history[metric_name], marker="o")
                 plt.title(
-                    f'{filename_prefix.replace("_", " ").title()} {metric_name.replace("_", " ").title()} Over Epochs',
+                    f"{filename_prefix.replace('_', ' ').title()} {metric_name.replace('_', ' ').title()} Over Epochs",
                 )
                 plt.xlabel("Epoch")
                 plt.ylabel(metric_name.replace("_", " ").title())
@@ -98,7 +98,7 @@ class MetricTracker:
         # Plot Loss
         plt.figure(figsize=(10, 6))
         sns.lineplot(x=epochs, y=self.history["loss"], marker="o")
-        plt.title(f'{filename_prefix.replace("_", " ").title()} Loss Over Epochs')
+        plt.title(f"{filename_prefix.replace('_', ' ').title()} Loss Over Epochs")
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         plt.grid(True)
@@ -112,14 +112,16 @@ class MetricTracker:
                 plt.figure(figsize=(10, 6))
                 sns.lineplot(x=epochs, y=self.history[metric_name], marker="o")
                 plt.title(
-                    f'{filename_prefix.replace("_", " ").title()} {metric_name.replace("_", " ").title()} Over Epochs',
+                    f"{filename_prefix.replace('_', ' ').title()} {metric_name.replace('_', ' ').title()} Over Epochs",
                 )
                 plt.xlabel("Epoch")
                 plt.ylabel(metric_name.replace("_", " ").title())
                 plt.grid(True)
                 plt.tight_layout()
                 plt.savefig(
-                    os.path.join(save_dir, f"{filename_prefix}_{metric_name}_curve.png"),
+                    os.path.join(
+                        save_dir, f"{filename_prefix}_{metric_name}_curve.png"
+                    ),
                 )
                 plt.close()
 
@@ -150,13 +152,22 @@ def calculate_metrics(y_true, y_pred_probs, y_pred_labels, average="binary"):
     # which can cause issues with precision/recall/f1_score
     if len(np.unique(y_true)) > 1 and len(np.unique(y_pred_labels)) > 1:
         metrics["precision"] = precision_score(
-            y_true, y_pred_labels, average=average, zero_division=0,
+            y_true,
+            y_pred_labels,
+            average=average,
+            zero_division=0,
         )
         metrics["recall"] = recall_score(
-            y_true, y_pred_labels, average=average, zero_division=0,
+            y_true,
+            y_pred_labels,
+            average=average,
+            zero_division=0,
         )
         metrics["f1_score"] = f1_score(
-            y_true, y_pred_labels, average=average, zero_division=0,
+            y_true,
+            y_pred_labels,
+            average=average,
+            zero_division=0,
         )
         if (
             y_pred_probs is not None and len(np.unique(y_true)) == 2
@@ -172,8 +183,13 @@ def calculate_metrics(y_true, y_pred_probs, y_pred_labels, average="binary"):
 
     return metrics
 
+
 def plot_confusion_matrix(
-    y_true, y_pred_labels, labels, save_dir="plots", filename="confusion_matrix.png",
+    y_true,
+    y_pred_labels,
+    labels,
+    save_dir="plots",
+    filename="confusion_matrix.png",
 ) -> None:
     """
     Plots a confusion matrix using seaborn and matplotlib.
@@ -188,7 +204,12 @@ def plot_confusion_matrix(
     cm = confusion_matrix(y_true, y_pred_labels)
     plt.figure(figsize=(8, 7))
     sns.heatmap(
-        cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels,
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=labels,
+        yticklabels=labels,
     )
     plt.title("Confusion Matrix")
     plt.xlabel("Predicted Label")

@@ -24,7 +24,9 @@ from gnn_vuln_detection.naming_analysis.patterns import identify_naming_conventi
 
 
 def visualize_ast_interactive(
-    ast_root: Node, filename="ast_graph.html", max_nodes=2000,
+    ast_root: Node,
+    filename="ast_graph.html",
+    max_nodes=2000,
 ) -> None:
     """Visualize AST with pyvis (interactive, zoomable, scrollable)."""
     graph = convert_ast_to_graph(ast_root)
@@ -231,7 +233,9 @@ def main() -> None:
         visualize_ast(analyzed_code)
         visualize_ast_interactive(analyzed_code)
         identifiers = extract_identifiers_from_node(
-            analyzed_code, c_code.encode(), language="c",
+            analyzed_code,
+            c_code.encode(),
+            language="c",
         )
         show_ast_structure(analyzed_code)
         print("Extracted identifiers")

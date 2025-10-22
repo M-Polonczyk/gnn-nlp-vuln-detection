@@ -87,6 +87,7 @@ venv.bak/
 
 # Too big for git
 data/preprocessed/*
+!data/processed/dataset*.pt
 
 # Plots
 plots/*

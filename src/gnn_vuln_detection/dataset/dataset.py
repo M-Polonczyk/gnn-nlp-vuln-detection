@@ -145,7 +145,8 @@ class VulnerabilityDataset(Dataset):
         return data
 
     def split(
-        self, ratios: tuple[float, float, float],
+        self,
+        ratios: tuple[float, float, float],
     ):
         """Split dataset indices into train, validation, and test sets."""
         assert sum(ratios) == 1.0, "Ratios must sum to 1.0"

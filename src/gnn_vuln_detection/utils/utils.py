@@ -1,10 +1,12 @@
 """Main utility module."""
+
 import json
 import logging
 import re
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
 
 def parse_git_url(git_url: str) -> tuple[str | None, str | None]:
     """
@@ -49,4 +51,3 @@ def save_json(data: list | dict, file_path: Path) -> int:
         logging.exception("Could not write to JSON file: %s", file_path)
         return 0
     return 1
-

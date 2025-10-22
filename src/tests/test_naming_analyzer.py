@@ -234,7 +234,9 @@ class TestNamingAnalyzer(unittest.TestCase):
 
         # Create mock nodes
         class MockNode:
-            def __init__(self, node_type, start_byte=0, end_byte=0, children=None) -> None:
+            def __init__(
+                self, node_type, start_byte=0, end_byte=0, children=None
+            ) -> None:
                 self.type = node_type
                 self.start_byte = start_byte
                 self.end_byte = end_byte
@@ -302,7 +304,9 @@ class TestNamingAnalyzer(unittest.TestCase):
         """Test extract_identifiers function with nested structure."""
 
         class MockNode:
-            def __init__(self, node_type, start_byte=0, end_byte=0, children=None) -> None:
+            def __init__(
+                self, node_type, start_byte=0, end_byte=0, children=None
+            ) -> None:
                 self.type = node_type
                 self.start_byte = start_byte
                 self.end_byte = end_byte
@@ -329,7 +333,9 @@ class TestNamingAnalyzer(unittest.TestCase):
         """Test extract_identifiers function behavior with different languages."""
 
         class MockNode:
-            def __init__(self, node_type, start_byte=0, end_byte=0, children=None) -> None:
+            def __init__(
+                self, node_type, start_byte=0, end_byte=0, children=None
+            ) -> None:
                 self.type = node_type
                 self.start_byte = start_byte
                 self.end_byte = end_byte

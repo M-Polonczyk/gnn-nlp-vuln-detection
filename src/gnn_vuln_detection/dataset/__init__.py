@@ -12,14 +12,15 @@ __all__ = [
 ]
 
 
-def create_cwe_dataset(dataset_config: dict[str, Any] | None = None) -> VulnerabilityDataset:
+def create_cwe_dataset(
+    dataset_config: dict[str, Any] | None = None,
+) -> VulnerabilityDataset:
     if not dataset_config:
         from gnn_vuln_detection.utils.config_loader import load_config
+
         dataset_config = load_config("dataset_paths.yaml")
 
-    diversevul_dataset_path = dataset_config["diversevul"][
-        "dataset_path"
-    ]
+    diversevul_dataset_path = dataset_config["diversevul"]["dataset_path"]
     diversevul_loader = DiverseVulDatasetLoader(
         dataset_path=diversevul_dataset_path,
         # metadata_path=Path("data/preprocessed/diversevul/c_cpp/2023/metadata.json"),

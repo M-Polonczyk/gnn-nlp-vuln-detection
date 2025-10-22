@@ -64,10 +64,16 @@ def extract_identifiers(tree, source_code, language):
     while to_visit:
         node = to_visit.pop()
         if node.type in valid_types:
-            ident = {"type": node.type, "start": node.start_byte, "end": node.end_byte, "code": source_code[node.start_byte : node.end_byte].decode()}
+            ident = {
+                "type": node.type,
+                "start": node.start_byte,
+                "end": node.end_byte,
+                "code": source_code[node.start_byte : node.end_byte].decode(),
+            }
             identifiers.append(ident)
         to_visit.extend(node.children)
     return identifiers
+
 
 def extract_identifiers_from_node(node, source_code, language="c"):
     """Recursively extract identifiers from a given AST node."""
@@ -105,8 +111,17 @@ def extract_identifiers_from_node(node, source_code, language="c"):
     if node.type in valid_types:
         if node.type == "identifier":
             convention = identify_naming_conventions(node.text.decode("utf-8"))
-            print(f"Identifier '{node.text.decode('utf-8')}' follows convention: {convention}")
-        identifiers.append({"type": node.type, "start": node.start_byte, "end": node.end_byte, "code": source_code[node.start_byte : node.end_byte].decode()})
+            print(
+                f"Identifier '{node.text.decode('utf-8')}' follows convention: {convention}"
+            )
+        identifiers.append(
+            {
+                "type": node.type,
+                "start": node.start_byte,
+                "end": node.end_byte,
+                "code": source_code[node.start_byte : node.end_byte].decode(),
+            }
+        )
     for child in node.children:
         identifiers.extend(extract_identifiers_from_node(child, source_code))
     return identifiers

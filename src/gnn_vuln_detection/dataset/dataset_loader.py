@@ -300,7 +300,6 @@ class DiverseVulDatasetLoader(DatasetLoader):
         )
         return self.samples
 
-
     def load_metadata(self) -> dict[str, CodeMetadata]:
         """
         Load metadata from JSON file if available.

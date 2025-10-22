@@ -161,8 +161,7 @@ class DataclassToGraphConverter:
         )
 
         # Add metadata as additional attributes
-        if sample.cwe_ids:
-            data.cwe_ids = sample.cwe_ids
+        data.cwe_ids = sample.cwe_ids or []
         if sample.function_name:
             data.function_name = sample.function_name
         if sample.metadata:
@@ -255,8 +254,6 @@ def example_ast_conversion():
     print(f"Label: {data.y.item()}")
 
     return data
-
-
 
 
 if __name__ == "__main__":

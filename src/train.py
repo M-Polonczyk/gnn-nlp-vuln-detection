@@ -6,6 +6,7 @@ from pathlib import Path
 
 import torch
 from torch_geometric.loader import DataLoader
+from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
@@ -56,10 +57,21 @@ def main() -> None:
     diversevul_loader = DiverseVulDatasetLoader(
         dataset_path=dataset_config["diversevul"]["dataset_path"],
     )
-    samples = diversevul_loader.load_dataset()
     converter = DataclassToGraphConverter()
-    data = [converter.code_sample_to_pyg_data(sample) for sample in samples]
+    samples = diversevul_loader.load_dataset()
+    samples = samples[
+        : len(samples) // 64
+    ]  # Use only part of the dataset for faster training
+    data = [
+        converter.code_sample_to_pyg_data(sample)
+        for sample in tqdm(samples, desc="Converting samples to graphs")
+    ]
+    # torch.save(data, "data/processed/dataset-small.pt")
+    data = torch.load("data/processed/dataset-small.pt", weights_only=False)
     train, val, test = split_dataset(data)
+    print(
+        f"Dataset split into {len(train)} train, {len(val)} val, {len(test)} test samples."
+    )
     # Create DataLoader objects
     train_loader = DataLoader(
         train,
@@ -84,7 +96,7 @@ def main() -> None:
     model, best_val_acc = train_cwe_classifier(
         train_loader=train_loader,
         val_loader=val_loader,
-        model_config=model_params["gcn_standard"],
+        model_config=model_params["gcn_multiclass"],
         num_epochs=training_config["epochs"],
         learning_rate=training_config["learning_rate"],
         device=device,
@@ -114,10 +126,10 @@ def main() -> None:
     metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=[0, 1])
 
     # Save the trained model
-    torch.save(model.state_dict(), "vuln_detector.pth")
-    print("Model saved as 'vuln_detector.pth'")
-    scripted_model = torch.jit.script(model)
-    scripted_model.save("vuln_detector.pt")
+    torch.save(model.state_dict(), "cwe_detector.pth")
+    print("Model saved as 'cwe_detector.pth'")
+    # scripted_model = torch.jit.script(model)
+    # scripted_model.save("cwe_detector.pt")
 
     input_dim = next(iter(train_loader)).x.shape[1]
     num_nodes = 10
