@@ -111,8 +111,8 @@ def main() -> None:
     model, best_val_acc = train_cwe_classifier(
         train_loader=train_loader,
         val_loader=val_loader,
-        model_config=model_params["gcn_multiclass"],
         num_epochs=training_config["epochs"],
+        model_config=model_params["gcn_multiclass"],
         learning_rate=training_config["learning_rate"],
         device=device,
     )

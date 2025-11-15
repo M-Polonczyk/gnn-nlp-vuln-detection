@@ -1,6 +1,7 @@
 """Training module."""
 
 import logging
+from typing import Literal
 
 import torch
 from torch_geometric.loader import DataLoader
@@ -32,7 +33,7 @@ def train_vulnerability_detector(
     learning_rate: float = 0.001,
     weight_decay: float = 1e-4,
     model_config: dict | None = None,
-    device="cpu",
+    device: Literal["cpu", "cuda"] = "cpu",
 ):
     """Train a vulnerability detection model."""
 
@@ -71,7 +72,7 @@ def train_cwe_classifier(
     learning_rate: float = 0.001,
     weight_decay: float = 1e-4,
     model_config: dict | None = None,
-    device="cpu",
+    device: Literal["cpu", "cuda"] = "cpu",
 ):
     """
     Train a CWE (Common Weakness Enumeration) classification model.

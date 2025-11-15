@@ -14,6 +14,8 @@ from gnn_vuln_detection.utils import config_loader
 
 
 def main():
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+
     dataset_config = config_loader.load_config("dataset_paths.yaml")
     model_params = config_loader.load_config("model_params.yaml")["gcn_multiclass"]
     cwes = config_loader.load_config("model_params.yaml")["vulnerabilities"]
@@ -54,8 +56,9 @@ def main():
             config=model_params,
         )
         model.load_state_dict(torch.load("cwe_detector.pth"))
+        model.to(device)
 
-        y_true, y_probs, y_labels = model.evaluate([batch_graph])
+        y_true, y_probs, y_labels = model.evaluate([batch_graph], device)
         print("y_true:", y_true)
         print("y_probs:", y_probs)
         print("y_labels:", y_labels)
