@@ -22,14 +22,42 @@ def train_loop(
     optimizer: Optimizer,
     num_epochs: int = 100,
     device: Literal["cpu", "cuda"] = "cpu",
+    pos_weight: torch.Tensor | None = None,
 ):
     """
     Main training loop for the GNN model.
     """
 
-    def train_epoch() -> tuple[float, float]:
-        nonlocal model, train_loader, optimizer, device, criterion
+    train_tracker = MetricTracker(metric_names=["accuracy", "loss"])
+    train_loader_len = len(train_loader)
+    val_tracker = MetricTracker(
+        metric_names=["accuracy", "precision", "recall", "f1_score", "roc_auc"],
+    )
+    # TODO:
+    # pos_weight = compute_pos_weight(data, num_classes)  # data = list of Data
+    # pos_weight = pos_weight.to(device)
+    # criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    if pos_weight is not None:
+        criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    else:
+        criterion = torch.nn.BCEWithLogitsLoss()
 
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        mode="min",
+        factor=0.5,
+        patience=10,
+    )
+
+    best_val_acc = 0
+    best_val_f1 = -1.0
+    train_acc = 0.0  # TODO
+
+    logging.info("Starting training loop...")
+
+    for epoch in range(num_epochs):
+        # Training phase
+        # avg_train_loss, train_acc = train_epoch()
         model.train()
         train_loss = 0
         # zamiast accuracy, liczymy tylko loss
@@ -46,30 +74,8 @@ def train_loop(
             optimizer.step()
 
             train_loss += loss.item()
-        return train_loss / len(train_loader), 0.0  # można zwrócić 0 albo wyliczyć F1
+        avg_train_loss = train_loss / train_loader_len
 
-    train_tracker = MetricTracker(metric_names=["accuracy", "loss"])
-    val_tracker = MetricTracker(
-        metric_names=["accuracy", "precision", "recall", "f1_score", "roc_auc"],
-    )
-
-    criterion = torch.nn.BCEWithLogitsLoss()
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        mode="min",
-        factor=0.5,
-        patience=10,
-    )
-
-    best_val_acc = 0
-    best_model_state = None
-    best_val_f1 = -1.0
-
-    logging.info("Starting training loop...")
-
-    for epoch in range(num_epochs):
-        # Training phase
-        avg_train_loss, train_acc = train_epoch()
         train_tracker.update(
             {
                 "accuracy": train_acc,
@@ -105,8 +111,11 @@ def train_loop(
     logging.info("Training finished.")
 
     # TODO: Fix plotting
-    # train_tracker.save_metrics(filename_prefix="train")
-    # val_tracker.save_metrics(filename_prefix="val")
+    try:
+        train_tracker.save_metrics(filename_prefix="train")
+        val_tracker.save_metrics(filename_prefix="val")
+    except Exception:
+        logging.exception("Error ploting metrics")
 
     logging.info("Training and validation metric plots saved to 'plots/' directory.")
 

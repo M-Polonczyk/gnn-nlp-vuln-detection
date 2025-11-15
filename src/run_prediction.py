@@ -28,6 +28,7 @@ def main():
 
     num_classes = model_params["num_classes"]
     cwe_to_index = {val["cwe_id"]: val["index"] for val in cwes}
+    index_to_cwe = {v: k for k, v in cwe_to_index.items()}
 
     diversevul_loader = DiverseVulDatasetLoader(
         dataset_path=dataset_config["diversevul"]["dataset_path"],
@@ -66,14 +67,28 @@ def main():
         with torch.no_grad():
             output = model(batch_graph.x, batch_graph.edge_index, batch_graph.batch)
 
-        probs = torch.sigmoid(output)
+        print("Logits:", output)
+        print("Sigmoid:", torch.sigmoid(output))
+
+        probs = torch.sigmoid(output).squeeze(0)
         preds = (probs > 0.5).int()
 
         print("Probabilities:", probs)
         print("Predicted CWE labels:", preds)
         print("True CWE labels:", batch_graph.y)
-        print("Predicted CWEs:")
-        print([val["cwe_id"] for val in cwes if preds[0, val["index"]] == 1])
+        cwes_predicted = [val["cwe_id"] for val in cwes if preds[val["index"]] == 1]
+        if cwes_predicted:
+            print("Predicted CWEs:")
+            print(", ".join(cwes_predicted))
+            exit()
+
+        best_idx = probs.argmax().item()
+        best_prob = probs[int(best_idx)].item()
+        best_cwe = index_to_cwe[best_idx]
+        print("Best prediction:")
+        print(f"\tCWE: {best_cwe}")
+        print(f"\tindex: {best_idx}")
+        print(f"\tprobability: {best_prob:.4f}")
 
 
 if __name__ == "__main__":

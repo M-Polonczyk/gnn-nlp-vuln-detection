@@ -2,18 +2,15 @@
 
 from typing import Any
 
-from .gnn import (
-    BaseGNN,
-    VulnerabilityGAT,
-    VulnerabilityGCN,
-)
+from .gnn import BaseGNN, MultilabelGCN, VulnerabilityGAT
 
 
 class GNNModelFactory:
     """Factory for creating GNN models for vulnerability detection."""
 
     MODEL_TYPES = {
-        "gcn": VulnerabilityGCN,
+        # TODO: Add other models
+        "gcn": MultilabelGCN,
         "gat": VulnerabilityGAT,
     }
 

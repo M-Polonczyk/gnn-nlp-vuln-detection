@@ -2,10 +2,11 @@
 
 from .base import BaseGNN
 from .gat import VulnerabilityGAT
-from .standard import VulnerabilityGCN
+from .standard import MultilabelGCN, VulnerabilityGCN
 
 __all__ = [
     "BaseGNN",
+    "MultilabelGCN",
     "VulnerabilityGAT",
     "VulnerabilityGCN",
 ]

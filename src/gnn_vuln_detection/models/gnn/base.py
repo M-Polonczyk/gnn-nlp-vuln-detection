@@ -2,6 +2,7 @@ import abc
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 
 class BaseGNN(nn.Module):
@@ -22,6 +23,9 @@ class BaseGNN(nn.Module):
 
         # Tutaj zdefiniujesz warstwy, które będą wspólne lub nadpisane
         # przez konkretne implementacje GNN
+
+    def _eval_function(self, logits):
+        return F.softmax(logits, dim=1), torch.argmax(logits, dim=1)
 
     @abc.abstractmethod
     def forward(self, data) -> None:
@@ -48,18 +52,14 @@ class BaseGNN(nn.Module):
                 logits = self(batch.x, batch.edge_index, batch.batch)
 
                 # Single-label case
-                # probs = F.softmax(logits, dim=1)
-                # preds = torch.argmax(probs, dim=1)
-                # Multi-label case
-                probs = torch.sigmoid(logits)
-                preds = (probs >= 0.5).float()
+                probs, preds = self._eval_function(logits)
 
                 y_true.append(batch.y.cpu())
                 y_pred_probs.append(probs.cpu())
                 y_pred_labels.append(preds.cpu())
 
-        y_true = torch.cat(y_true).numpy()
-        y_pred_probs = torch.cat(y_pred_probs).numpy()
-        y_pred_labels = torch.cat(y_pred_labels).numpy()
-
-        return y_true, y_pred_probs, y_pred_labels
+        return (
+            torch.cat(y_true).numpy(),
+            torch.cat(y_pred_probs).numpy(),
+            torch.cat(y_pred_labels).numpy(),
+        )
