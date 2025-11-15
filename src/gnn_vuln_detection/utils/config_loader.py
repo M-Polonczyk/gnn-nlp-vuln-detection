@@ -40,3 +40,7 @@ def load_all_configs() -> dict[str, dict[str, Any]]:
             key = os.path.splitext(fname)[0]
             configs[key] = load_config(fname)
     return configs
+
+
+def get_cwe_labels() -> dict[int, str]:
+    return load_config("model_params.yaml")["vulnerabilities"]

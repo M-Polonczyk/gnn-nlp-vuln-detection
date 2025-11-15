@@ -77,12 +77,11 @@ class ASTToGraphConverter:
     def ast_to_pyg_data(
         self,
         ast_node: Node,
-        label: int,
+        labels: list[int],
         graph_type: GraphType = GraphType.AST,
         include_edge_features: bool = False,
     ) -> Data:
         """Convert AST node directly to PyTorch Geometric Data object."""
-
         # Build NetworkX graph
         nx_graph = self.ast_to_networkx(ast_node, graph_type)
 
@@ -102,6 +101,7 @@ class ASTToGraphConverter:
 
         # Convert to tensors
         x = torch.tensor(np.array(node_features), dtype=torch.float)
+        y = torch.tensor(labels, dtype=torch.float).unsqueeze(0)
 
         # Extract edge information
         edge_list = []
@@ -122,7 +122,7 @@ class ASTToGraphConverter:
         data_dict = {
             "x": x,
             "edge_index": edge_index,
-            "y": torch.tensor([label], dtype=torch.long),
+            "y": y,
         }
 
         if include_edge_features and edge_features:
@@ -141,6 +141,7 @@ class DataclassToGraphConverter:
     def code_sample_to_pyg_data(
         self,
         sample: CodeSample,
+        labels: list[int] | None = None,
         graph_type: GraphType = GraphType.AST,
         include_edge_features: bool = False,
     ) -> Data:
@@ -155,7 +156,7 @@ class DataclassToGraphConverter:
         # Convert AST to PyG Data
         data = self.ast_converter.ast_to_pyg_data(
             ast_root,
-            sample.label,
+            sample.cwe_ids_labeled or [sample.label],
             graph_type,
             include_edge_features,
         )

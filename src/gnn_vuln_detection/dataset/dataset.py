@@ -72,32 +72,33 @@ class VulnerabilityDataset(Dataset):
         #         data = self.pre_transform(data)
 
         #     torch.save(data, raw_path.replace(self.raw_dir, self.processed_dir).split(".")[0] + ".pt")
-        dataset = []
-        for idx, sample in enumerate(self.samples):
-            if isinstance(sample, CodeSample):
-                data = self.dataclass_converter.code_sample_to_pyg_data(
-                    sample,
-                    self.graph_type,
-                    self.include_edge_features,
-                )
-            elif isinstance(sample, Node):  # Tree-sitter Node
-                # Assume label 0 for unlabeled samples
-                data = self.ast_converter.ast_to_pyg_data(
-                    sample,
-                    0,
-                    self.graph_type,
-                    self.include_edge_features,
-                )
-            elif isinstance(sample, nx.DiGraph):
-                # Convert NetworkX graph to PyG Data
-                data = from_networkx(sample)
-                if not hasattr(data, "y"):
-                    data.y = torch.tensor([0], dtype=torch.long)
-            else:
-                msg = f"Unsupported sample type: {type(sample)}"
-                raise ValueError(msg)
-            dataset.append(data)
-        torch.save(dataset, os.path.join(self.processed_dir, f"data_{idx}.pt"))
+        # dataset = []
+        # for idx, sample in enumerate(self.samples):
+        #     if isinstance(sample, CodeSample):
+        #         data = self.dataclass_converter.code_sample_to_pyg_data(
+        #             sample,
+        #             self.graph_type,
+        #             self.include_edge_features,
+        #         )
+        #     elif isinstance(sample, Node):  # Tree-sitter Node
+        #         # Assume label 0 for unlabeled samples
+        #         data = self.ast_converter.ast_to_pyg_data(
+        #             sample,
+        #             0,
+        #             self.graph_type,
+        #             self.include_edge_features,
+        #         )
+        #     elif isinstance(sample, nx.DiGraph):
+        #         # Convert NetworkX graph to PyG Data
+        #         data = from_networkx(sample)
+        #         if not hasattr(data, "y"):
+        #             data.y = torch.tensor([0], dtype=torch.long)
+        #     else:
+        #         msg = f"Unsupported sample type: {type(sample)}"
+        #         raise ValueError(msg)
+        #     dataset.append(data)
+        # torch.save(dataset, os.path.join(self.processed_dir, f"data_{idx}.pt"))
+        return None
 
     def len(self) -> int:
         return len(self.samples)
@@ -117,6 +118,7 @@ class VulnerabilityDataset(Dataset):
         if isinstance(sample, CodeSample):
             data = self.dataclass_converter.code_sample_to_pyg_data(
                 sample,
+                list(range(25)), # TODO: pass labels properly
                 self.graph_type,
                 self.include_edge_features,
             )
@@ -124,7 +126,7 @@ class VulnerabilityDataset(Dataset):
             # Assume label 0 for unlabeled samples
             data = self.ast_converter.ast_to_pyg_data(
                 sample,
-                0,
+                list(range(25)), # TODO: pass labels properly
                 self.graph_type,
                 self.include_edge_features,
             )
@@ -133,6 +135,8 @@ class VulnerabilityDataset(Dataset):
             data = from_networkx(sample)
             if not hasattr(data, "y"):
                 data.y = torch.tensor([0], dtype=torch.long)
+        elif isinstance(sample, Data):
+            data = sample
         else:
             msg = f"Unsupported sample type: {type(sample)}"
             raise ValueError(msg)
@@ -146,7 +150,7 @@ class VulnerabilityDataset(Dataset):
 
     def split(
         self,
-        ratios: tuple[float, float, float],
+        ratios: tuple[float, float, float] = (0.8, 0.1, 0.1),
     ):
         """Split dataset indices into train, validation, and test sets."""
         assert sum(ratios) == 1.0, "Ratios must sum to 1.0"

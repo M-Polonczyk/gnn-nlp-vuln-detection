@@ -1,7 +1,6 @@
 import abc
 
 import torch
-import torch.nn.functional as F
 from torch import nn
 
 
@@ -48,8 +47,12 @@ class BaseGNN(nn.Module):
                 batch = batch.to(device)
                 logits = self(batch.x, batch.edge_index, batch.batch)
 
-                probs = F.softmax(logits, dim=1)
-                preds = torch.argmax(probs, dim=1)
+                # Single-label case
+                # probs = F.softmax(logits, dim=1)
+                # preds = torch.argmax(probs, dim=1)
+                # Multi-label case
+                probs = torch.sigmoid(logits)
+                preds = (probs >= 0.5).float()
 
                 y_true.append(batch.y.cpu())
                 y_pred_probs.append(probs.cpu())

@@ -134,6 +134,7 @@ class HeteroGNNEncoder(nn.Module):
             # compute per-graph pooling via scatter
             # we implement manual scatter mean/weighted-sum
             # note: torch_scatter may be available in your env; for generality, użyj scatter_add
+            # batch_idx.scatter_add(0, batch_idx, torch.ones_like(batch_idx, dtype=torch.float))
             num_graphs = int(batch_idx.max().item()) + 1
             # weighted sum
             weighted = h * scores.unsqueeze(-1)

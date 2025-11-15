@@ -6,7 +6,6 @@ from pathlib import Path
 
 import torch
 from torch_geometric.loader import DataLoader
-from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
@@ -44,6 +43,12 @@ def load_config():
 def main() -> None:
     """Main function to demonstrate loading and analyzing C code samples."""
     dataset_config, training_config, model_params = load_config()
+    num_classes = model_params["gcn_multiclass"]["num_classes"]
+    # build a mapping from cwe_id -> index for convenience
+    cwe_to_index = {
+        val["cwe_id"]: val["index"] for val in model_params["vulnerabilities"]
+    }
+
     print(f"Dataset config: {dataset_config}")
     print(f"Training config: {training_config}")
 
@@ -62,16 +67,24 @@ def main() -> None:
     samples = samples[
         : len(samples) // 64
     ]  # Use only part of the dataset for faster training
-    data = [
-        converter.code_sample_to_pyg_data(sample)
-        for sample in tqdm(samples, desc="Converting samples to graphs")
-    ]
+    # dataset = create_cwe_dataset(samples=samples)
+    # dataset = VulnerabilityDataset(samples=samples)
+    # data = []
+    # for sample in tqdm(samples, desc="Converting samples to graphs"):
+    #     # initialize vector of zeros length num_classes
+    #     label_vec = [0] * num_classes
+    #     if sample.cwe_ids:
+    #         for cwe in sample.cwe_ids:
+    #             if cwe in cwe_to_index:
+    #                 label_vec[cwe_to_index[cwe]] = 1
+    #     sample.cwe_ids_labeled = label_vec
+    #     data.append(converter.code_sample_to_pyg_data(sample))
+
     # torch.save(data, "data/processed/dataset-small.pt")
     data = torch.load("data/processed/dataset-small.pt", weights_only=False)
     train, val, test = split_dataset(data)
-    print(
-        f"Dataset split into {len(train)} train, {len(val)} val, {len(test)} test samples."
-    )
+    # train, val, test = dataset.split()
+
     # Create DataLoader objects
     train_loader = DataLoader(
         train,
@@ -102,6 +115,12 @@ def main() -> None:
         device=device,
     )
 
+    # Save the trained model
+    torch.save(model.state_dict(), "cwe_detector.pth")
+    print("Model saved as 'cwe_detector.pth'")
+    # scripted_model = torch.jit.script(model)
+    # scripted_model.save("cwe_detector.pt")
+
     print(f"Best validation accuracy: {best_val_acc:.4f}")
     # Evaluate on test set
     print("\nEvaluating on test set...")
@@ -123,13 +142,7 @@ def main() -> None:
 
     # Calculate and log additional metrics
     print("\nCalculating additional metrics on test set...")
-    metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=[0, 1])
-
-    # Save the trained model
-    torch.save(model.state_dict(), "cwe_detector.pth")
-    print("Model saved as 'cwe_detector.pth'")
-    # scripted_model = torch.jit.script(model)
-    # scripted_model.save("cwe_detector.pt")
+    metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
 
     input_dim = next(iter(train_loader)).x.shape[1]
     num_nodes = 10

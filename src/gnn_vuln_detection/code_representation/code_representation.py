@@ -32,7 +32,9 @@ class CodeSample:
     label: int  # 0: safe, 1: vulnerable
     language: LanguageEnum = LanguageEnum.C
     cve_id: str | None = None
+    # TODO: change to dict
     cwe_ids: list[str] | None = None
+    cwe_ids_labeled: list[int] | None = None
     function_name: str | None = None
     line_numbers: tuple[int, int] | None = None
     size: int | None = None

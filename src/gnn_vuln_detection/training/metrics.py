@@ -7,6 +7,7 @@ from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
     f1_score,
+    multilabel_confusion_matrix,
     precision_score,
     recall_score,
     roc_auc_score,
@@ -201,7 +202,15 @@ def plot_confusion_matrix(
         save_dir (str): Directory to save the plot.
         filename (str): Name of the file to save the plot.
     """
-    cm = confusion_matrix(y_true, y_pred_labels)
+    multiclass_count_threshold = 2
+    if len(labels) < multiclass_count_threshold:
+        msg = "At least two labels are required to plot a confusion matrix."
+        raise ValueError(msg)
+    if len(labels) > multiclass_count_threshold:
+        cm = multilabel_confusion_matrix(y_true, y_pred_labels)
+    else:
+        cm = confusion_matrix(y_true, y_pred_labels)
+
     plt.figure(figsize=(8, 7))
     sns.heatmap(
         cm,
