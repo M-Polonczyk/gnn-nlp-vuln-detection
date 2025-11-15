@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -127,7 +128,12 @@ class MetricTracker:
                 plt.close()
 
 
-def calculate_metrics(y_true, y_pred_probs, y_pred_labels, average="binary"):
+def calculate_metrics(
+    y_true,
+    y_pred_probs,
+    y_pred_labels,
+    average: Literal["micro", "macro", "samples", "weighted", "binary"] = "binary",
+):
     """
     Calculates a set of common classification metrics.
 
@@ -175,7 +181,8 @@ def calculate_metrics(y_true, y_pred_probs, y_pred_labels, average="binary"):
         ):  # ROC AUC is typically for binary classification
             metrics["roc_auc"] = roc_auc_score(y_true, y_pred_probs)
     else:
-        # If only one class is present, set precision, recall, f1_score, roc_auc to 0 or nan as appropriate
+        # If only one class is present, set precision, recall, f1_score,
+        # roc_auc to 0 or nan as appropriate
         metrics["precision"] = 0.0
         metrics["recall"] = 0.0
         metrics["f1_score"] = 0.0

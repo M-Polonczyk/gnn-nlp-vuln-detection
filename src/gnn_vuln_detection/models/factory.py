@@ -60,7 +60,7 @@ class GNNModelFactory:
         Args:
             model_type: Type of model ('gcn', 'gat', 'graphsage', 'gin')
             input_dim: Dimension of input node features
-            num_classes: Number of output classes (default: 2 for binary classification)
+            num_classes: Number of output classes (default: 2 for binary classification). Config will override if provided.
             config: Additional configuration parameters
 
         Returns:
@@ -80,6 +80,7 @@ class GNNModelFactory:
         model_config = cls.DEFAULT_CONFIGS[model_type].copy()
         if config:
             model_config.update(config)
+            num_classes = model_config.pop("num_classes", num_classes)
 
         # Create model
         model_class = cls.MODEL_TYPES[model_type]

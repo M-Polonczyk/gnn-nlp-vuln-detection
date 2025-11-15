@@ -2,13 +2,11 @@
 
 import logging
 
-import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
 
 from gnn_vuln_detection.models.factory import create_vulnerability_detector
-from src.gnn_vuln_detection.models.factory import create_vulnerability_detector
-from src.gnn_vuln_detection.utils import config_loader
+from gnn_vuln_detection.utils import config_loader
 
 from . import losses, metrics
 from .train_loop import train_loop

@@ -1,7 +1,7 @@
-from typing import Any, Dict
+from typing import Any
 
 from .dataset import VulnerabilityDataset
-from .dataset_loader import DiverseVulDatasetLoader, MegaVulDatasetLoader
+from .loaders import DiverseVulDatasetLoader, MegaVulDatasetLoader
 
 __all__ = [
     "DiverseVulDatasetLoader",

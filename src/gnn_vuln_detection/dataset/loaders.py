@@ -246,14 +246,18 @@ class MegaVulDatasetLoader(DatasetLoader):
 class DiverseVulDatasetLoader(DatasetLoader):
     """Loader for DiverseVul vulnerability dataset (diversevul.json format)."""
 
-    def load_dataset(self) -> list[CodeSample]:
+    def load_dataset(self, labels: list[str] | None = None) -> list[CodeSample]:
         """
         Load the main dataset from JSON file.
 
+        Args:
+            labels (list[str] | None, optional): CWEs to keep in dataset. Defaults to all.
+
         Returns:
-            List of CodeSample objects
+            list[CodeSample]: List of CodeSample objects
         """
-        logger.info(f"Loading dataset from {self.dataset_path}")
+
+        logger.info("Loading dataset from %s", self.dataset_path)
 
         raw_data = load_json(self.dataset_path)
 
@@ -262,11 +266,15 @@ class DiverseVulDatasetLoader(DatasetLoader):
 
         for i, item in enumerate(raw_data):
             if not isinstance(item, dict):
-                logger.warning(f"Skipping non-dictionary item at index {i} in dataset.")
+                logger.warning(
+                    "Skipping non-dictionary item at index %d in dataset.", i
+                )
                 skipped_samples_count += 1
                 continue
             try:
                 cwes = item.get("cwe", [])
+                if labels and (cwes and not (set(cwes) & set(labels))):
+                    continue
                 sample = CodeSample(
                     label=1 if cwes else 0,
                     code=item["func"],
@@ -337,3 +345,7 @@ class DiverseVulDatasetLoader(DatasetLoader):
 
         logger.info(f"Loaded metadata for {len(self.metadata)} DiverseVul entries")
         return self.metadata
+
+
+def load_cwe_dataset(dataset_loader: DatasetLoader, labels: list[str]):
+    dataset_loader.load_dataset()
