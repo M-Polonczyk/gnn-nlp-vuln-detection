@@ -1,8 +1,10 @@
+import logging
 import random
 import sys
 from pathlib import Path
 
 import torch
+from torch_geometric.data import Data
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
@@ -11,6 +13,30 @@ from gnn_vuln_detection.models.factory import (
     GNNModelFactory,
 )
 from gnn_vuln_detection.utils import config_loader
+
+
+def predict(batch_graph: Data, device="cpu") -> torch.Tensor:
+    model_params = config_loader.load_config("model_params.yaml")["gcn_multiclass"]
+    input_dim = batch_graph.x.shape[1]
+
+    model_params.pop("model_type", None)
+
+    model = GNNModelFactory.create_model(
+        model_type="gcn",
+        input_dim=input_dim,
+        num_classes=model_params["num_classes"],
+        config=model_params,
+    )
+    model.load_state_dict(torch.load("cwe_detector.pth"))
+    model.to(device)
+
+    y_true, y_probs, y_labels = model.evaluate([batch_graph], device)
+    logging.info("y_true: %s", y_true)
+    logging.info("y_probs: %s", y_probs)
+    logging.info("y_labels: %s", y_labels)
+
+    with torch.no_grad():
+        return model(batch_graph.x, batch_graph.edge_index, batch_graph.batch)
 
 
 def main():
@@ -45,26 +71,7 @@ def main():
 
         batch_graph = converter.code_sample_to_pyg_data(code_sample)
 
-        input_dim = batch_graph.x.shape[1]
-
-        model_params.pop("model_type", None)
-
-        model = GNNModelFactory.create_model(
-            model_type="gcn",
-            input_dim=input_dim,
-            num_classes=model_params["num_classes"],
-            config=model_params,
-        )
-        model.load_state_dict(torch.load("cwe_detector.pth"))
-        model.to(device)
-
-        y_true, y_probs, y_labels = model.evaluate([batch_graph], device)
-        print("y_true:", y_true)
-        print("y_probs:", y_probs)
-        print("y_labels:", y_labels)
-
-        with torch.no_grad():
-            output = model(batch_graph.x, batch_graph.edge_index, batch_graph.batch)
+        output = predict(batch_graph, device)
 
         print("Logits:", output)
         print("Sigmoid:", torch.sigmoid(output))
