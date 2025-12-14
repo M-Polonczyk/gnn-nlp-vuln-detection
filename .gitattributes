@@ -1,1 +1,2 @@
 data/processed/dataset*.pt filter=lfs diff=lfs merge=lfs -text
+checkpoints/*.pt filter=lfs diff=lfs merge=lfs -text
