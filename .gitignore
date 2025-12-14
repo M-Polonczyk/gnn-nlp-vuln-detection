@@ -81,6 +81,9 @@ venv.bak/
 *.pth
 *.h5
 *.onnx
+!checkpoints/*.pt
+!checkpoints/*.pth
+!checkpoints/*.onnx
 
 # Mac specific
 .DS_Store
