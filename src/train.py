@@ -115,7 +115,7 @@ def main() -> None:
         val_loader=val_loader,
         num_epochs=training_config["epochs"],
         model_config=model_params["gcn_multiclass"],
-        learning_rate=training_config["learning_rate"],
+        learning_rate=float(training_config["learning_rate"]),
         device=device,
     )
 
