@@ -93,4 +93,7 @@ data/preprocessed/*
 !data/processed/dataset*.pt
 
 # Plots
-plots/*data/processed/dataset-diversevul-c.pt
+plots/*
+
+data/processed/dataset-diversevul-c.pt
+
