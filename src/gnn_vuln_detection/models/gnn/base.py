@@ -1,8 +1,10 @@
 import abc
 
 import torch
+from numpy import ndarray
 from torch import nn
 from torch.nn import functional as F
+from torch_geometric.data import Data
 
 
 class BaseGNN(nn.Module):
@@ -40,7 +42,9 @@ class BaseGNN(nn.Module):
             if hasattr(layer, "reset_parameters"):
                 layer.reset_parameters()
 
-    def evaluate(self, data, device="cpu"):
+    def evaluate(
+        self, data: list[Data], device="cpu"
+    ) -> tuple[ndarray, ndarray, ndarray]:
         self.eval()
         y_true = []
         y_pred_probs = []
@@ -54,7 +58,9 @@ class BaseGNN(nn.Module):
                 # Single-label case
                 probs, preds = self._eval_function(logits)
 
-                y_true.append(batch.y.cpu())
+                y_true.append(
+                    batch.y.cpu() if isinstance(batch.y, torch.Tensor) else batch.y
+                )
                 y_pred_probs.append(probs.cpu())
                 y_pred_labels.append(preds.cpu())
 
