@@ -3,6 +3,7 @@
 
 import sys
 from pathlib import Path
+from typing import Any
 
 import torch
 from torch_geometric.loader import DataLoader
@@ -15,9 +16,11 @@ from gnn_vuln_detection.utils import config_loader
 from src.gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 
 
-def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
+def split_dataset(
+    dataset: list, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15
+) -> tuple[list, list, list]:
     """Split dataset into train, validation, and test sets."""
-    import random
+    import random  # noqa: PLC0415
 
     # Shuffle the dataset
     random.shuffle(dataset)
@@ -33,7 +36,7 @@ def split_dataset(dataset, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
     return train_set, val_set, test_set
 
 
-def load_config():
+def load_config() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     config = config_loader.load_all_configs()
     dataset_config = config["dataset_paths"]
     training_config = config["training"]
@@ -50,7 +53,6 @@ def main() -> None:
         val["cwe_id"]: val["index"] for val in model_params["vulnerabilities"]
     }
 
-    print(f"Dataset config: {dataset_config}")
     print(f"Training config: {training_config}")
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -66,9 +68,9 @@ def main() -> None:
 
     converter = DataclassToGraphConverter()
     samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
-    samples = samples[
-        : len(samples) // 64
-    ]  # Use only part of the dataset for faster training
+    # samples = samples[
+    #     : len(samples)
+    # ]  # Use only part of the dataset for faster training
     # dataset = create_cwe_dataset(samples=samples)
     # dataset = VulnerabilityDataset(samples=samples)
     data = []
@@ -82,7 +84,7 @@ def main() -> None:
         sample.cwe_ids_labeled = label_vec
         data.append(converter.code_sample_to_pyg_data(sample))
 
-    torch.save(data, "data/processed/dataset-small.pt")
+    torch.save(data, "data/processed/dataset-diversevul-c.pt")
     # data = torch.load("data/processed/dataset-small.pt", weights_only=False)
     train, val, test = split_dataset(data)
     # train, val, test = dataset.split()
