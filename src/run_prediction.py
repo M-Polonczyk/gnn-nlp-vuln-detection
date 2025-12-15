@@ -27,7 +27,7 @@ def predict(batch_graph: Data, device="cpu") -> torch.Tensor:
         num_classes=model_params["num_classes"],
         config=model_params,
     )
-    model.load_state_dict(torch.load("cwe_detector.pth"))
+    model.load_state_dict(torch.load("checkpoints/cwe_detector.pth"))
     model.to(device)
 
     y_true, y_probs, y_labels = model.evaluate([batch_graph], device)

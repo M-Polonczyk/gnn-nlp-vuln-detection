@@ -53,10 +53,14 @@ class ASTToGraphConverter:
             self.node_type_vocab[node_type] = len(self.node_type_vocab)
         type_idx = self.node_type_vocab[node_type]
 
+        max_num_node_types = len(self.node_type_vocab)
+        node_type_one_hot = np.zeros(max_num_node_types, dtype=np.float32)
+        node_type_one_hot[type_idx] = 1.0
+        features.extend(node_type_one_hot.tolist())
+
         # Node properties
         features.extend(
             [
-                type_idx,
                 len(node.children),  # Number of children
                 node.start_point[0],  # Start line
                 node.start_point[1],  # Start column
@@ -102,7 +106,6 @@ class ASTToGraphConverter:
         # Convert to tensors
         x = torch.tensor(np.array(node_features), dtype=torch.float)
         y = torch.tensor(labels, dtype=torch.float).unsqueeze(0)
-
         # Extract edge information
         edge_list = []
         edge_features = []
@@ -156,7 +159,7 @@ class DataclassToGraphConverter:
         # Convert AST to PyG Data
         data = self.ast_converter.ast_to_pyg_data(
             ast_root,
-            sample.cwe_ids_labeled or [sample.label],
+            sample.cwe_ids_labeled or [0 for _ in range(25)],  # TODO: make dynamic
             graph_type,
             include_edge_features,
         )
@@ -195,72 +198,3 @@ class DataclassToGraphConverter:
                     features[field.name] = torch.tensor(value, dtype=torch.float)
 
         return features
-
-
-# Example usage functions
-def example_dataclass_conversion():
-    """Example of converting dataclass to PyG Data."""
-    from gnn_vuln_detection.dataset import CodeSample
-    from src.gnn_vuln_detection.dataset.dataset import LanguageEnum
-
-    # Create sample data
-    sample = CodeSample(
-        code="""
-        int vulnerable_function(char *input) {
-            char buffer[10];
-            strcpy(buffer, input);  // Buffer overflow vulnerability
-            return strlen(buffer);
-        }
-        """,
-        label=1,  # Vulnerable
-        language=LanguageEnum.C,
-        cwe_ids=["CWE-120"],
-        function_name="vulnerable_function",
-    )
-
-    # Convert to PyG Data
-    converter = DataclassToGraphConverter()
-    data = converter.code_sample_to_pyg_data(sample, GraphType.AST)
-
-    print(f"Node features shape: {data.x.shape}")
-    print(f"Edge index shape: {data.edge_index.shape}")
-    print(f"Label: {data.y.item()}")
-    print(f"CWE ID: {data.cwe_id}")
-
-    return data
-
-
-def example_ast_conversion():
-    """Example of converting AST directly to PyG Data."""
-
-    code = """
-    int safe_function(char *input, size_t max_len) {
-        char buffer[10];
-        strncpy(buffer, input, max_len);  // Safe version
-        buffer[9] = '\\0';  // Ensure null termination
-        return strlen(buffer);
-    }
-    """
-
-    # Parse to AST
-    parser = ASTParser("c")
-    ast_root = parser.parse_code_to_ast(code)
-
-    # Convert to PyG Data
-    converter = ASTToGraphConverter()
-    data = converter.ast_to_pyg_data(ast_root, label=0)  # Safe code
-
-    print(f"Node features shape: {data.x.shape}")
-    print(f"Edge index shape: {data.edge_index.shape}")
-    print(f"Label: {data.y.item()}")
-
-    return data
-
-
-if __name__ == "__main__":
-    # Run examples
-    print("=== Dataclass Conversion Example ===")
-    example_dataclass_conversion()
-
-    print("\n=== AST Conversion Example ===")
-    example_ast_conversion()

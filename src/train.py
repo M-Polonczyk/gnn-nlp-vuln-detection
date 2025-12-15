@@ -62,30 +62,35 @@ def main() -> None:
     # dataset = create_cwe_dataset(dataset_config)
     # dataset = dataset.shuffle()
 
-    # diversevul_loader = DiverseVulDatasetLoader(
-    #     dataset_path=dataset_config["diversevul"]["dataset_path"],
-    # )
+    diversevul_loader = DiverseVulDatasetLoader(
+        dataset_path=dataset_config["diversevul"]["dataset_path"],
+    )
 
-    # converter = DataclassToGraphConverter()
-    # samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
-    # samples = samples[
-    #     : len(samples)
-    # ]  # Use only part of the dataset for faster training
+    converter = DataclassToGraphConverter()
+    samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
+    samples = samples[
+        : len(samples) // 32
+    ]  # Use only part of the dataset for faster training
     # dataset = create_cwe_dataset(samples=samples)
     # dataset = VulnerabilityDataset(samples=samples)
-    # data = []
-    # for sample in tqdm(samples, desc="Converting samples to graphs"):
-    #     # initialize vector of zeros length num_classes
-    #     label_vec = [0] * num_classes
-    #     if sample.cwe_ids:
-    #         for cwe in sample.cwe_ids:
-    #             if cwe in cwe_to_index:
-    #                 label_vec[cwe_to_index[cwe]] = 1
-    #     sample.cwe_ids_labeled = label_vec
-    #     data.append(converter.code_sample_to_pyg_data(sample))
-
-    # torch.save(data, "data/processed/dataset-diversevul-c.pt")
-    data = torch.load("data/processed/dataset-diversevul-c.pt", weights_only=False)
+    print(f"Loaded {len(samples)} samples from DiverseVul dataset.")
+    data = []
+    for sample in tqdm(samples, desc="Converting samples to graphs"):
+        # initialize vector of zeros length num_classes
+        label_vec = [0] * num_classes
+        if sample.cwe_ids:
+            for cwe in sample.cwe_ids:
+                if cwe in cwe_to_index:
+                    label_vec[cwe_to_index[cwe]] = 1
+        sample.cwe_ids_labeled = label_vec
+        data.append(converter.code_sample_to_pyg_data(sample))
+    print(samples[:5])
+    print(data[:5])
+    exit(0)
+    torch.save(data, "data/processed/dataset-small-diversevul-c.pt")
+    data = torch.load(
+        "data/processed/dataset-small-diversevul-c.pt", weights_only=False
+    )
     train, val, test = split_dataset(data)
     # train, val, test = dataset.split()
 

@@ -6,7 +6,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-import torch
 from torch_geometric.data import Data
 
 from gnn_vuln_detection.code_representation.code_representation import (
@@ -28,27 +27,6 @@ class DatasetLoader:
         if not self.dataset_path.exists():
             msg = f"Dataset file not found at {self.dataset_path}"
             raise FileNotFoundError(msg)
-
-    @abc.abstractmethod
-    def _create_pyg_data(
-        self,
-        node_features: list,
-        edge_index,
-        label: int,
-        sample: CodeSample,
-    ) -> Data:
-        """Create PyTorch Geometric Data object from components."""
-        x = torch.tensor(node_features, dtype=torch.float)
-        y = torch.tensor([label], dtype=torch.long)
-
-        data = Data(x=x, edge_index=edge_index, y=y)
-        # data.cve = sample.cve_id
-        data.cwe = sample.cwe_ids
-        data.project = sample.metadata.project
-        data.commit_id = sample.metadata.commit_id
-        # data.size = sample.size
-
-        return data
 
     @abc.abstractmethod
     def load_dataset(self) -> list[dict]:
