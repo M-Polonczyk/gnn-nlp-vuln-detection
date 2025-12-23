@@ -8,6 +8,7 @@ from torch_geometric.loader import DataLoader
 
 from gnn_vuln_detection.models.factory import create_vulnerability_detector
 from gnn_vuln_detection.utils import config_loader
+from src.gnn_vuln_detection.utils.utils import compute_pos_weight
 
 from . import losses, metrics
 from .train_loop import train_loop
@@ -124,6 +125,10 @@ def train_cwe_classifier(
         weight_decay=weight_decay,
     )
 
+    weights = compute_pos_weight(
+        train_loader, num_classes=model_config["num_classes"]
+    ).to(device)
+
     return train_loop(
         model,
         train_loader,
@@ -131,4 +136,5 @@ def train_cwe_classifier(
         optimizer,
         num_epochs,
         device,
+        weights,
     )  # model, best_val_acc

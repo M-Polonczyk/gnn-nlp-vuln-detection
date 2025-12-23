@@ -8,8 +8,9 @@ This module provides utilities to convert:
 4. Collections of any of the above to PyG datasets
 """
 
-from dataclasses import asdict, fields
-from typing import Any
+import json
+from dataclasses import asdict
+from pathlib import Path
 
 import networkx as nx
 import numpy as np
@@ -20,7 +21,7 @@ from tree_sitter import Node
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
 from gnn_vuln_detection.code_representation.code_representation import CodeSample
 from gnn_vuln_detection.code_representation.feature_extractor import (
-    GraphFeatureExtractor,
+    CodeGraphProcessor,
 )
 from gnn_vuln_detection.code_representation.graph_builder import GraphBuilder, GraphType
 
@@ -28,11 +29,16 @@ from gnn_vuln_detection.code_representation.graph_builder import GraphBuilder, G
 class ASTToGraphConverter:
     """Converts AST nodes to graph representations suitable for GNNs."""
 
-    def __init__(self, feature_extractor: GraphFeatureExtractor | None = None) -> None:
-        self.feature_extractor = feature_extractor or GraphFeatureExtractor()
+    # Number of fixed numerical features (children, start/end line/col, text_len, is_named)
+    NUM_NUMERICAL_FEATURES = 7
+
+    def __init__(self, feature_extractor: CodeGraphProcessor | None = None) -> None:
+        self.feature_extractor = feature_extractor or CodeGraphProcessor()
         self.graph_builder = GraphBuilder()
-        self.node_type_vocab = {}
-        self.edge_type_vocab = {}
+        self.node_type_vocab: dict[str, int] = {}
+        self.edge_type_vocab: dict[str, int] = {}
+        self._vocab_frozen = False
+        self._num_extra_features = 0  # Features from GraphFeatureExtractor
 
     def ast_to_networkx(
         self,
@@ -42,23 +48,89 @@ class ASTToGraphConverter:
         """Convert AST node to NetworkX graph."""
         return self.graph_builder.build_graph(ast_node, graph_type)
 
+    def build_vocabulary(self, ast_node: Node) -> None:
+        """
+        Build vocabulary by traversing AST and collecting all node types.
+
+        Call this method on all samples BEFORE calling extract_node_features
+        to ensure consistent feature dimensions across all samples.
+        """
+        if self._vocab_frozen:
+            return
+
+        def _traverse(node: Node) -> None:
+            node_type = node.type
+            if node_type not in self.node_type_vocab:
+                self.node_type_vocab[node_type] = len(self.node_type_vocab)
+            for child in node.children:
+                _traverse(child)
+
+        _traverse(ast_node)
+
+    def freeze_vocabulary(self) -> None:
+        """
+        Freeze the vocabulary after building it.
+
+        After freezing, new node types will be mapped to a special <UNK> token.
+        """
+        if not self._vocab_frozen:
+            # Add unknown token for unseen node types
+            if "<UNK>" not in self.node_type_vocab:
+                self.node_type_vocab["<UNK>"] = len(self.node_type_vocab)
+            self._vocab_frozen = True
+
+    def get_num_node_types(self) -> int:
+        """Return the number of unique node types in vocabulary."""
+        return len(self.node_type_vocab)
+
+    def get_input_dim(self) -> int:
+        """
+        Calculate and return the input dimension for the GNN model.
+
+        input_dim = num_node_types (OHE) + NUM_NUMERICAL_FEATURES + num_extra_features
+        """
+        return (
+            self.get_num_node_types()
+            + self.NUM_NUMERICAL_FEATURES
+            + self._num_extra_features
+        )
+
+    def set_num_extra_features(self, num_features: int) -> None:
+        """Set the number of extra features from GraphFeatureExtractor."""
+        self._num_extra_features = num_features
+
     def extract_node_features(self, node: Node) -> np.ndarray:
-        """Extract features for a single AST node."""
-        # Basic node features
+        """
+        Extract features for a single AST node.
+
+        Feature vector structure:
+        - One-hot encoded node type (size: num_node_types)
+        - Numerical features (size: NUM_NUMERICAL_FEATURES = 7)
+        - Extra features from GraphFeatureExtractor (size: num_extra_features)
+
+        Returns:
+            np.ndarray of shape (input_dim,)
+        """
+        # Ensure vocabulary is frozen for consistent dimensions
+        if not self._vocab_frozen:
+            self.freeze_vocabulary()
+
+        num_node_types = self.get_num_node_types()
         features = []
 
-        # Node type (one-hot encoded)
+        # Node type (one-hot encoded with fixed size)
         node_type = node.type
-        if node_type not in self.node_type_vocab:
-            self.node_type_vocab[node_type] = len(self.node_type_vocab)
-        type_idx = self.node_type_vocab[node_type]
+        if node_type in self.node_type_vocab:
+            type_idx = self.node_type_vocab[node_type]
+        else:
+            # Map unknown types to <UNK> token
+            type_idx = self.node_type_vocab.get("<UNK>", 0)
 
-        max_num_node_types = len(self.node_type_vocab)
-        node_type_one_hot = np.zeros(max_num_node_types, dtype=np.float32)
+        node_type_one_hot = np.zeros(num_node_types, dtype=np.float32)
         node_type_one_hot[type_idx] = 1.0
         features.extend(node_type_one_hot.tolist())
 
-        # Node properties
+        # Node properties (7 numerical features)
         features.extend(
             [
                 len(node.children),  # Number of children
@@ -77,6 +149,40 @@ class ASTToGraphConverter:
             features.extend(text_features)
 
         return np.array(features, dtype=np.float32)
+
+    def save_vocabulary(self, path: str | Path) -> None:
+        """
+        Save vocabulary to a JSON file for later use.
+
+        Args:
+            path: Path to save the vocabulary file.
+        """
+        path = Path(path)
+        vocab_data = {
+            "node_type_vocab": self.node_type_vocab,
+            "edge_type_vocab": self.edge_type_vocab,
+            "vocab_frozen": self._vocab_frozen,
+            "num_extra_features": self._num_extra_features,
+            "num_numerical_features": self.NUM_NUMERICAL_FEATURES,
+        }
+        with path.open("w", encoding="utf-8") as f:
+            json.dump(vocab_data, f, indent=2)
+
+    def load_vocabulary(self, path: str | Path) -> None:
+        """
+        Load vocabulary from a JSON file.
+
+        Args:
+            path: Path to the vocabulary file.
+        """
+        path = Path(path)
+        with path.open("r", encoding="utf-8") as f:
+            vocab_data = json.load(f)
+
+        self.node_type_vocab = vocab_data["node_type_vocab"]
+        self.edge_type_vocab = vocab_data["edge_type_vocab"]
+        self._vocab_frozen = vocab_data.get("vocab_frozen", True)
+        self._num_extra_features = vocab_data.get("num_extra_features", 0)
 
     def ast_to_pyg_data(
         self,
@@ -144,7 +250,6 @@ class DataclassToGraphConverter:
     def code_sample_to_pyg_data(
         self,
         sample: CodeSample,
-        labels: list[int] | None = None,
         graph_type: GraphType = GraphType.AST,
         include_edge_features: bool = False,
     ) -> Data:
@@ -154,7 +259,9 @@ class DataclassToGraphConverter:
         if sample.language != self.ast_parser.language:
             self.ast_parser = ASTParser(sample.language.value)
 
-        ast_root = self.ast_parser.parse_code_to_ast(sample.code)
+        ast_root = self.ast_parser.parse_code_to_ast(
+            self.ast_parser.cleanup_code(sample.code)
+        )
 
         # Convert AST to PyG Data
         data = self.ast_converter.ast_to_pyg_data(
@@ -173,28 +280,3 @@ class DataclassToGraphConverter:
                 setattr(data, key, value)
 
         return data
-
-    def dataclass_to_features(self, obj: Any) -> dict[str, Any]:
-        """Extract features from any dataclass."""
-        if not hasattr(obj, "__dataclass_fields__"):
-            msg = "Object must be a dataclass"
-            raise ValueError(msg)
-
-        features = {}
-        for field in fields(obj):
-            value = getattr(obj, field.name)
-
-            # Convert different types to tensors
-            if isinstance(value, (int, float)):
-                features[field.name] = torch.tensor([value], dtype=torch.float)
-            elif isinstance(value, str):
-                # Simple string encoding (could be enhanced with embeddings)
-                features[field.name] = torch.tensor(
-                    [hash(value) % 10000],
-                    dtype=torch.float,
-                )
-            elif isinstance(value, (list, tuple)):
-                if len(value) > 0 and isinstance(value[0], (int, float)):
-                    features[field.name] = torch.tensor(value, dtype=torch.float)
-
-        return features

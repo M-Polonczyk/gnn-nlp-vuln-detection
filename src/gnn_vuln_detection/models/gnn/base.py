@@ -5,6 +5,7 @@ from numpy import ndarray
 from torch import nn
 from torch.nn import functional as F
 from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 
 
 class BaseGNN(nn.Module):
@@ -43,7 +44,7 @@ class BaseGNN(nn.Module):
                 layer.reset_parameters()
 
     def evaluate(
-        self, data: list[Data], device="cpu"
+        self, data: list[Data] | DataLoader, device="cpu"
     ) -> tuple[ndarray, ndarray, ndarray]:
         self.eval()
         y_true = []

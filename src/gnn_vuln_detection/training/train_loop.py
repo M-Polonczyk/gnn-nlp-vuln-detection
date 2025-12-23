@@ -86,20 +86,24 @@ def train_loop(
 
         # Validation phase
         y_true, y_pred_probs, y_pred_labels = model.evaluate(val_loader, device)
-        val_metrics = calculate_metrics(y_true, y_pred_probs, y_pred_labels)
-        val_tracker.update(val_metrics, 0.0)
 
         # Learning rate scheduling
         scheduler.step(avg_train_loss)
-
-        if epoch % 10 == 0 or epoch == num_epochs - 1:
-            logging.info(
-                "Epoch %3d: Train Loss=%.4f, Train Acc=%.4f, Val F1: %.4f",
-                epoch,
-                avg_train_loss,
-                train_acc,
-                val_metrics["f1_score"],
+        try:
+            val_metrics = calculate_metrics(
+                y_true, y_pred_probs, y_pred_labels, "macro"
             )
+            val_tracker.update(val_metrics, 0.0)
+            if epoch % 10 == 0 or epoch == num_epochs - 1:
+                logging.info(
+                    "Epoch %3d: Train Loss=%.4f, Train Acc=%.4f, Val F1: %.4f",
+                    epoch,
+                    avg_train_loss,
+                    train_acc,
+                    val_metrics["f1_score"],
+                )
+        except Exception:
+            logging.exception("Error calculating validation metrics")
 
     # Save best model based on validation F1-score
     f1 = val_tracker.get_last_metrics()["f1_score"]

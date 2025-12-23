@@ -20,7 +20,7 @@ class GNNModelFactory:
             "num_layers": 3,
             "dropout_rate": 0.3,
             "use_batch_norm": True,
-            "pool_type": "mean",
+            "pool_type": "combined",
         },
         "gat": {
             "hidden_dim": 128,

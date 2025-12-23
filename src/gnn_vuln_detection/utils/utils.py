@@ -11,32 +11,39 @@ import torch
 logger = logging.getLogger(__name__)
 
 
-def compute_pos_weight(dataset_list, num_classes: int):
+def compute_pos_weight(dataset_iterable, num_classes: int):
     """
-    dataset_list: iterable of torch_geometric.data.Data with data.y shape [1, num_classes]
-    returns torch.tensor of shape [num_classes] for BCEWithLogitsLoss(pos_weight=...)
-    pos_weight[c] = (neg_count / pos_count)  (if pos_count == 0 -> 1.0)
+    dataset_iterable: iterable of torch_geometric.data.Data or batches
+    data.y shape: [C], [1, C], or [B, C]
+
+    returns torch.tensor of shape [num_classes]
     """
+
     pos = np.zeros(num_classes, dtype=np.int64)
     total = 0
-    for data in dataset_list:
-        # ensure data.y is [1, C]
+
+    for data in dataset_iterable:
         y = data.y
+
         if isinstance(y, torch.Tensor):
-            y = y.cpu().numpy()
-        if y.ndim == 2:
-            y = y.squeeze(0)
-        pos += (y == 1).astype(np.int64)
-        total += 1
+            y = y.detach().cpu().numpy()
+
+        # Normalize shape to [N, C]
+        if y.ndim == 1:
+            y = y[None, :]  # [C] -> [1, C]
+        elif y.ndim != 2:
+            raise ValueError(f"Unexpected y shape: {y.shape}")
+
+        # y is now [N, C]
+        pos += (y == 1).sum(axis=0)
+        total += y.shape[0]
 
     neg = total - pos
-    pos_weight = []
-    for p, n in zip(pos, neg, strict=False):
-        if p == 0:
-            pos_weight.append(1.0)
-        else:
-            # To avoid huge weights clamp to something reasonable if needed
-            pos_weight.append(float(n) / float(p))
+
+    pos_weight = np.ones(num_classes, dtype=np.float32)
+    mask = pos > 0
+    pos_weight[mask] = neg[mask] / pos[mask]
+
     return torch.tensor(pos_weight, dtype=torch.float)
 
 

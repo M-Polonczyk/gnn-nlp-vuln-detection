@@ -39,3 +39,5 @@ class CodeSample:
     line_numbers: tuple[int, int] | None = None
     size: int | None = None
     metadata: CodeMetadata = field(default_factory=CodeMetadata)
+    graph: object | None = None  # Placeholder for graph representation
+    features: dict | None = None  # Placeholder for extracted features

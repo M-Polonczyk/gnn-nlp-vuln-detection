@@ -24,6 +24,7 @@ dependencies = [
   "requests<2.32",
   "ruff>=0.13.0",
   "scikit-learn>=1.7.2",
+  "scikit-multilearn>=0.2.0",
   "seaborn>=0.13.2",
   "sentencepiece>=0.2.1",
   "sphinx>=8.2.3",

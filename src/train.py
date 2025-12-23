@@ -5,25 +5,63 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import torch
+from skmultilearn.model_selection import iterative_train_test_split
+from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
+from gnn_vuln_detection.code_representation.code_representation import CodeSample
+from gnn_vuln_detection.code_representation.feature_extractor import CodeGraphProcessor
 from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
+from gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 from gnn_vuln_detection.training import metrics, train_cwe_classifier
 from gnn_vuln_detection.utils import config_loader
-from src.gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
+
+
+def split_multilabel_dataset(
+    samples: list[CodeSample], train_ratio=0.7, val_ratio=0.15
+):
+    """
+    Stratyfikowany podział datasetu multi-label.
+    """
+    # 1. Przygotuj macierz etykiet (y) i indeksy próbek (X)
+    # Musimy przekazać etykiety jako tablicę numpy
+    labels = np.array([s.cwe_ids_labeled for s in samples])
+    indices = np.arange(len(samples)).reshape(-1, 1)  # Indeksy próbek
+
+    # 2. Pierwszy podział: Train vs (Val + Test)
+    test_val_ratio = 1 - train_ratio
+    X_train_idx, y_train, X_temp_idx, y_temp = iterative_train_test_split(
+        indices, labels, test_size=test_val_ratio
+    )
+
+    # 3. Drugi podział: Val vs Test (pół na pół z reszty)
+    # Obliczamy ile z 'temp' ma stanowić val_ratio w skali całości
+    relative_val_size = val_ratio / test_val_ratio
+    X_val_idx, y_val, X_test_idx, y_test = iterative_train_test_split(
+        X_temp_idx,
+        y_temp,
+        test_size=0.5,  # 0.5 bo val i test są zazwyczaj równe (po 15%)
+    )
+
+    # 4. Mapowanie indeksów z powrotem na obiekty CodeSample
+    train_samples = [samples[i[0]] for i in X_train_idx]
+    val_samples = [samples[i[0]] for i in X_val_idx]
+    test_samples = [samples[i[0]] for i in X_test_idx]
+
+    return train_samples, val_samples, test_samples
 
 
 def split_dataset(
     dataset: list, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15
 ) -> tuple[list, list, list]:
     """Split dataset into train, validation, and test sets."""
-    import random  # noqa: PLC0415
 
     # Shuffle the dataset
-    random.shuffle(dataset)
+    # np.random.shuffle(dataset)
 
     total_size = len(dataset)
     train_size = int(total_size * train_ratio)
@@ -67,31 +105,71 @@ def main() -> None:
     )
 
     converter = DataclassToGraphConverter()
+    ast_parser = converter.ast_parser
     samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
+    np.random.shuffle(samples)
     samples = samples[
-        : len(samples) // 32
+        : len(samples) // 48
     ]  # Use only part of the dataset for faster training
-    # dataset = create_cwe_dataset(samples=samples)
-    # dataset = VulnerabilityDataset(samples=samples)
-    print(f"Loaded {len(samples)} samples from DiverseVul dataset.")
-    data = []
-    for sample in tqdm(samples, desc="Converting samples to graphs"):
-        # initialize vector of zeros length num_classes
+
+    # Step 1: Convert samples to AST
+    for sample in tqdm(samples, desc="Converting samples to nx graphs"):
         label_vec = [0] * num_classes
         if sample.cwe_ids:
             for cwe in sample.cwe_ids:
                 if cwe in cwe_to_index:
                     label_vec[cwe_to_index[cwe]] = 1
         sample.cwe_ids_labeled = label_vec
-        data.append(converter.code_sample_to_pyg_data(sample))
-    print(samples[:5])
-    print(data[:5])
-    exit(0)
-    torch.save(data, "data/processed/dataset-small-diversevul-c.pt")
-    data = torch.load(
-        "data/processed/dataset-small-diversevul-c.pt", weights_only=False
+        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
+        nx_graph = converter.ast_converter.ast_to_networkx(ast_root)
+        sample.graph = nx_graph
+    train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
+    # Step 2: Extract features
+    processor = CodeGraphProcessor(
+        node_dim=model_params["gcn_multiclass"]["hidden_dim"]
     )
-    train, val, test = split_dataset(data)
+    processor.fit([s.graph for s in train_samples])
+
+    # Step 3: Convert samples to PyG Data objects
+    def process_to_pyg(sample_list: list[CodeSample], desc="Converting to PyG data"):
+        pyg_data_list = []
+        for s in tqdm(sample_list, desc=desc):
+            features = processor.process(s.graph)
+            x = torch.tensor(features.node_features, dtype=torch.float)
+            edge_index = torch.tensor(features.edge_index, dtype=torch.long)
+            y = torch.tensor(s.cwe_ids_labeled, dtype=torch.int).unsqueeze(0)
+            data_dict = {
+                "x": x,
+                "y": y,
+                "edge_index": edge_index,
+                "edge_features": torch.tensor(features.edge_features, dtype=torch.float)
+                if features.edge_features is not None
+                else None,
+            }
+            pyg_data_list.append(Data(**data_dict))
+        return pyg_data_list
+
+    train = process_to_pyg(train_samples, desc="Processing train samples")
+    val = process_to_pyg(val_samples, desc="Processing val samples")
+    test = process_to_pyg(test_samples, desc="Processing test samples")
+    # data = []
+    # for sample in tqdm(samples, desc="Converting graphs to PyG data"):
+    #     # initialize vector of zeros length num_classes
+    #     label_vec = [0] * num_classes
+    #     if sample.cwe_ids:
+    #         for cwe in sample.cwe_ids:
+    #             if cwe in cwe_to_index:
+    #                 label_vec[cwe_to_index[cwe]] = 1
+    #     sample.cwe_ids_labeled = label_vec
+    #     data.append(converter.code_sample_to_pyg_data(sample))
+    # print(samples[:5])
+    # print(data[0].y.shape)
+    # print(data[0].y)
+    # # torch.save(data, "data/processed/dataset-diversevul-small-c.pt")
+    # # data = torch.load(
+    # #     "data/processed/dataset-small-diversevul-c.pt", weights_only=False
+    # # )
+    # train, val, test = split_dataset(data)
     # train, val, test = dataset.split()
 
     # Create DataLoader objects
@@ -113,6 +191,9 @@ def main() -> None:
     print(
         f"Dataset split: {len(train)} train, {len(val)} val, {len(test)} test samples",
     )
+    torch.save(train_loader, "data/processed/train-diversevul-small-c.pt")
+    torch.save(val_loader, "data/processed/val-diversevul-small-c.pt")
+    torch.save(test_loader, "data/processed/test-diversevul-small-c.pt")
 
     # Train a vulnerability detector
     model, best_val_acc = train_cwe_classifier(
@@ -134,7 +215,9 @@ def main() -> None:
     # Evaluate on test set
     print("\nEvaluating on test set...")
     y_true, y_pred_probs, y_pred_labels = model.evaluate(test_loader, device)
-    calculated_metrics = metrics.calculate_metrics(y_true, y_pred_probs, y_pred_labels)
+    calculated_metrics = metrics.calculate_metrics(
+        y_true, y_pred_probs, y_pred_labels, "macro"
+    )
     acc, prec, rec, f1, roc_auc = (
         calculated_metrics["accuracy"],
         calculated_metrics["precision"],
