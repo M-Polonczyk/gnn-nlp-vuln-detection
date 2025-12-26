@@ -101,11 +101,13 @@ class NodeFeatureExtractor:
     def __init__(self, vector_dim: int = 64):
         self.vector_dim = vector_dim
         self.node_type_to_id = {}
-        self.vuln_patterns = [
-            r"strcpy|strcat|gets|sprintf",  # Buffer overflow
+        self.vuln_patterns = [  # TODO: Extend this list
+            r"strcpy|strcat|gets|sprintf|vsprintf",  # Buffer overflow
             r"malloc|free|realloc|calloc",  # Memory mgmt
-            r"scanf|fgets|read",  # Input
+            r"scanf|bscanf|bsscanf|fgets|read|getchar|getc|getc_unlocked",  # Input
             r"system|exec|popen",  # Command injection
+            r"strncpy|strncat|snprintf|vsnprintf",  # Safer string funcs
+            r"\*\s*\([^)]*\+[^)]*\)",  # Unsafe pointer arithmetic
         ]
 
     def build_vocabulary(self, graphs: list[nx.DiGraph]):
@@ -152,8 +154,8 @@ class EdgeFeatureExtractor:
 
     def build_edge_vocabulary(self, graphs: list[nx.DiGraph]):
         types = set()
-        for G in graphs:
-            for _, _, data in G.edges(data=True):
+        for graph in graphs:
+            for _, _, data in graph.edges(data=True):
                 types.add(data.get("edge_type", "ast"))
         self.edge_type_to_id = {t: i for i, t in enumerate(sorted(types))}
 

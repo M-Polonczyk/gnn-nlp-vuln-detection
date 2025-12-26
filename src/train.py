@@ -24,9 +24,7 @@ from gnn_vuln_detection.utils import config_loader
 def split_multilabel_dataset(
     samples: list[CodeSample], train_ratio=0.7, val_ratio=0.15
 ):
-    """
-    Stratyfikowany podział datasetu multi-label.
-    """
+    """Stratified split of multilabel dataset into train, val, and test sets."""
     # 1. Przygotuj macierz etykiet (y) i indeksy próbek (X)
     # Musimy przekazać etykiety jako tablicę numpy
     labels = np.array([s.cwe_ids_labeled for s in samples])
@@ -121,9 +119,10 @@ def main() -> None:
                     label_vec[cwe_to_index[cwe]] = 1
         sample.cwe_ids_labeled = label_vec
         ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
-        nx_graph = converter.ast_converter.ast_to_networkx(ast_root)
-        sample.graph = nx_graph
+        sample.graph = converter.ast_converter.ast_to_networkx(ast_root)
+
     train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
+
     # Step 2: Extract features
     processor = CodeGraphProcessor(
         node_dim=model_params["gcn_multiclass"]["hidden_dim"]
@@ -152,25 +151,6 @@ def main() -> None:
     train = process_to_pyg(train_samples, desc="Processing train samples")
     val = process_to_pyg(val_samples, desc="Processing val samples")
     test = process_to_pyg(test_samples, desc="Processing test samples")
-    # data = []
-    # for sample in tqdm(samples, desc="Converting graphs to PyG data"):
-    #     # initialize vector of zeros length num_classes
-    #     label_vec = [0] * num_classes
-    #     if sample.cwe_ids:
-    #         for cwe in sample.cwe_ids:
-    #             if cwe in cwe_to_index:
-    #                 label_vec[cwe_to_index[cwe]] = 1
-    #     sample.cwe_ids_labeled = label_vec
-    #     data.append(converter.code_sample_to_pyg_data(sample))
-    # print(samples[:5])
-    # print(data[0].y.shape)
-    # print(data[0].y)
-    # # torch.save(data, "data/processed/dataset-diversevul-small-c.pt")
-    # # data = torch.load(
-    # #     "data/processed/dataset-small-diversevul-c.pt", weights_only=False
-    # # )
-    # train, val, test = split_dataset(data)
-    # train, val, test = dataset.split()
 
     # Create DataLoader objects
     train_loader = DataLoader(
