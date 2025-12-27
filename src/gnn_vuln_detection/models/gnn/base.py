@@ -64,7 +64,8 @@ class BaseGNN(nn.Module):
                 )
                 y_pred_probs.append(probs.cpu())
                 y_pred_labels.append(preds.cpu())
-
+        avg_labels = torch.cat(y_pred_labels).numpy().sum(axis=1).mean()
+        print(f"DEBUG: Średnia liczba etykiet na próbkę: {avg_labels:.2f}")
         return (
             torch.cat(y_true).numpy(),
             torch.cat(y_pred_probs).numpy(),

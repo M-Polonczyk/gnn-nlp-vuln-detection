@@ -19,6 +19,8 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+THRESHOLD = 0.6
+MODEL_PATH = "checkpoints/cwe_detector.pth"
 
 
 def load_model(input_dim, device):
@@ -32,7 +34,7 @@ def load_model(input_dim, device):
         config=model_params,
     )
 
-    model.load_state_dict(torch.load("cwe_detector.pth", map_location=device))
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
     model.to(device)
     model.eval()
     return model
@@ -50,7 +52,7 @@ def predict(batch_graph: Data, device="cpu") -> torch.Tensor:
         num_classes=model_params["num_classes"],
         config=model_params,
     )
-    model.load_state_dict(torch.load("cwe_detector.pth"))
+    model.load_state_dict(torch.load(MODEL_PATH))
     model.to(device)
     y_true, y_probs, y_labels = model.evaluate([batch_graph], device)
     logging.info("y_true: %s", y_true)
@@ -71,7 +73,7 @@ def predict_batch(
 
         for i in range(probs_all.shape[0]):
             probs = probs_all[i]
-            preds = (probs > 0.5).int()
+            preds = (probs > THRESHOLD).int()
 
             print("Probabilities:", probs)
             print("Predicted CWE labels:", preds)
@@ -120,6 +122,7 @@ def main():
     # predict_batch(samples, cwes, index_to_cwe, device=device)
 
     model = load_model(input_dim=samples.dataset[0].x.shape[1], device=device)
+    model.label_threshold = THRESHOLD
     y_true, y_pred_probs, y_pred_labels = model.evaluate(samples, device)
     logging.info("y_true: %s", y_true)
     logging.info("y_probs: %s", y_pred_probs)
