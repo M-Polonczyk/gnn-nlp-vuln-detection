@@ -7,6 +7,8 @@ from typing import Any
 
 import numpy as np
 import torch
+from joblib import dump, load
+from sklearn.metrics import f1_score
 from skmultilearn.model_selection import iterative_train_test_split
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
@@ -19,6 +21,24 @@ from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphC
 from gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 from gnn_vuln_detection.training import metrics, train_cwe_classifier
 from gnn_vuln_detection.utils import config_loader
+
+cache_path = Path("data/cache/graphs")
+cache_path.mkdir(parents=True, exist_ok=True)
+
+
+def find_optimal_thresholds(y_true, y_probs):
+    thresholds = np.linspace(0.1, 0.9, 50)
+    best_thresholds = np.full(y_true.shape[1], 0.5)
+
+    for i in range(y_true.shape[1]):  # Dla każdego CWE
+        best_f1 = 0
+        for t in thresholds:
+            preds = (y_probs[:, i] >= t).astype(int)
+            f1 = f1_score(y_true[:, i], preds, zero_division=0)
+            if f1 > best_f1:
+                best_f1 = f1
+                best_thresholds[i] = t
+    return best_thresholds
 
 
 def split_multilabel_dataset(
@@ -107,8 +127,18 @@ def main() -> None:
     samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
     np.random.shuffle(samples)
     samples = samples[
-        : len(samples) // 48
+        : len(samples) // 96
     ]  # Use only part of the dataset for faster training
+
+    def get_graph(sample: CodeSample):
+        cache_file = cache_path / f"{sample.id}.pkl"
+        if cache_file.exists():
+            return load(cache_file)
+
+        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
+        graph = converter.ast_converter.ast_to_networkx(ast_root)
+        dump(graph, cache_file)
+        return graph
 
     # Step 1: Convert samples to AST
     for sample in tqdm(samples, desc="Converting samples to nx graphs"):
@@ -118,10 +148,10 @@ def main() -> None:
                 if cwe in cwe_to_index:
                     label_vec[cwe_to_index[cwe]] = 1
         sample.cwe_ids_labeled = label_vec
-        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
-        sample.graph = converter.ast_converter.ast_to_networkx(ast_root)
+        sample.graph = get_graph(sample)
 
     train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
+    # Sprawdzić podział klas w datasecie
 
     # Step 2: Extract features
     processor = CodeGraphProcessor(
@@ -136,7 +166,7 @@ def main() -> None:
             features = processor.process(s.graph)
             x = torch.tensor(features.node_features, dtype=torch.float)
             edge_index = torch.tensor(features.edge_index, dtype=torch.long)
-            y = torch.tensor(s.cwe_ids_labeled, dtype=torch.int).unsqueeze(0)
+            y = torch.tensor(s.cwe_ids_labeled, dtype=torch.float32).unsqueeze(0)
             data_dict = {
                 "x": x,
                 "y": y,
@@ -152,28 +182,35 @@ def main() -> None:
     val = process_to_pyg(val_samples, desc="Processing val samples")
     test = process_to_pyg(test_samples, desc="Processing test samples")
 
+    torch.save(train, "data/processed/train-diversevul-small-c.pt")
+    torch.save(val, "data/processed/val-diversevul-small-c.pt")
+    torch.save(test, "data/processed/test-diversevul-small-c.pt")
+
     # Create DataLoader objects
     train_loader = DataLoader(
         train,
         batch_size=training_config["batch_size"],
         shuffle=True,
+        num_workers=4,
+        pin_memory=True,
     )
     val_loader = DataLoader(
         val,
         batch_size=training_config["batch_size"],
         shuffle=False,
+        num_workers=1,
+        pin_memory=True,
     )
     test_loader = DataLoader(
         test,
         batch_size=training_config["batch_size"],
         shuffle=False,
+        num_workers=1,
+        pin_memory=True,
     )
     print(
         f"Dataset split: {len(train)} train, {len(val)} val, {len(test)} test samples",
     )
-    torch.save(train_loader, "data/processed/train-diversevul-small-c.pt")
-    torch.save(val_loader, "data/processed/val-diversevul-small-c.pt")
-    torch.save(test_loader, "data/processed/test-diversevul-small-c.pt")
 
     # Train a vulnerability detector
     model, best_val_acc = train_cwe_classifier(
@@ -190,6 +227,8 @@ def main() -> None:
     print("Model saved as 'cwe_detector.pth'")
     # scripted_model = torch.jit.script(model)
     # scripted_model.save("cwe_detector.pt")
+
+    # thresholds = find_optimal_thresholds()
 
     print(f"Best validation accuracy: {best_val_acc:.4f}")
     # Evaluate on test set

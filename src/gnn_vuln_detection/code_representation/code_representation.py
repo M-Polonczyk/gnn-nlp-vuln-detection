@@ -30,6 +30,7 @@ class CodeSample:
 
     code: str
     label: int  # 0: safe, 1: vulnerable
+    id: str = ""
     language: LanguageEnum = LanguageEnum.C
     cve_id: str | None = None
     # TODO: change to dict

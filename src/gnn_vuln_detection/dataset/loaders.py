@@ -257,6 +257,7 @@ class DiverseVulDatasetLoader(DatasetLoader):
                     label=1 if cwes else 0,
                     code=item["func"],
                     cwe_ids=cwes,
+                    id=item.get("hash", ""),
                     metadata=CodeMetadata(
                         project=item.get("project", ""),
                         commit_id=item.get("commit_id", ""),

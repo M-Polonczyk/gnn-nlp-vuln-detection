@@ -118,7 +118,6 @@ class VulnerabilityDataset(Dataset):
         if isinstance(sample, CodeSample):
             data = self.dataclass_converter.code_sample_to_pyg_data(
                 sample,
-                list(range(25)), # TODO: pass labels properly
                 self.graph_type,
                 self.include_edge_features,
             )
@@ -126,7 +125,7 @@ class VulnerabilityDataset(Dataset):
             # Assume label 0 for unlabeled samples
             data = self.ast_converter.ast_to_pyg_data(
                 sample,
-                list(range(25)), # TODO: pass labels properly
+                list(range(9)),  # TODO: pass labels properly
                 self.graph_type,
                 self.include_edge_features,
             )

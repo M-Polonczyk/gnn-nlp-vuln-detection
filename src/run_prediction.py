@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 
 import torch
+from sklearn.metrics import f1_score
 from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 
@@ -100,6 +101,9 @@ def predict_batch(
 
 def load_dataset() -> DataLoader:
     return torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
+    # if isinstance(data, DataLoader):
+    #     return data
+    # return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
 
 
 def main():
@@ -131,6 +135,22 @@ def main():
         y_true, y_pred_probs, y_pred_labels, "macro"
     )
     logging.info("Calculated metrics: %s", calculated_metrics)
+
+    for i in range(num_classes):
+        class_cwe = index_to_cwe[i]
+        class_true = [y_true[j][i] for j in range(len(y_true))]
+        class_preds = [y_pred_labels[j][i] for j in range(len(y_pred_labels))]
+        class_f1 = f1_score(class_true, class_preds)
+        logging.info(f"F1 score for CWE {class_cwe} (index {i}): {class_f1:.4f}")
+
+    for y_t, pred in zip(y_true, y_pred_labels, strict=False):
+        cwes_predicted = [val["cwe_id"] for val in cwes if pred[val["index"]] == 1]
+        if cwes_predicted:
+            logging.info("Predicted CWEs: %s", ", ".join(cwes_predicted))
+            logging.info(
+                "Actual CWEs: %s",
+                ", ".join([index_to_cwe[i] for i, v in enumerate(y_t) if v == 1]),
+            )
 
 
 if __name__ == "__main__":

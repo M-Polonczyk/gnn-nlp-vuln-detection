@@ -1,7 +1,9 @@
 import logging
 from typing import Literal
 
+import numpy as np
 import torch
+from sklearn.metrics import f1_score
 from torch.optim import Optimizer
 from torch_geometric.loader import DataLoader
 
@@ -13,6 +15,21 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
+
+
+def find_optimal_thresholds(y_true, y_probs):
+    thresholds = np.linspace(0.1, 0.9, 50)
+    best_thresholds = np.full(y_true.shape[1], 0.5)
+
+    for i in range(y_true.shape[1]):  # Dla każdego CWE
+        best_f1 = 0
+        for t in thresholds:
+            preds = (y_probs[:, i] >= t).astype(int)
+            f1 = f1_score(y_true[:, i], preds, zero_division=0)
+            if f1 > best_f1:
+                best_f1 = f1
+                best_thresholds[i] = t
+    return best_thresholds
 
 
 def train_loop(
@@ -87,6 +104,9 @@ def train_loop(
         # Validation phase
         y_true, y_pred_probs, y_pred_labels = model.evaluate(val_loader, device)
 
+        thresholds = find_optimal_thresholds(y_true, y_pred_probs)
+        logging.info("Optimal thresholds per class: %s", thresholds)
+
         # Learning rate scheduling
         scheduler.step(avg_train_loss)
         try:
@@ -105,12 +125,13 @@ def train_loop(
         except Exception:
             logging.exception("Error calculating validation metrics")
 
-    # Save best model based on validation F1-score
-    f1 = val_tracker.get_last_metrics()["f1_score"]
-    if f1 > best_val_f1:
-        best_val_f1 = f1
-        torch.save(model.state_dict(), "best_gnn_model.pt")
-        logging.info("Saved best model with Val F1: %.4f", best_val_f1)
+        # Save best model based on validation F1-score
+        f1 = val_tracker.get_last_metrics()["f1_score"]
+        if f1 > best_val_f1:
+            best_val_f1 = f1
+            torch.save(model.state_dict(), "best_gnn_model.pt")
+            logging.info("Saved best model with Val F1: %.4f", best_val_f1)
+            # break
 
     logging.info("Training finished.")
 

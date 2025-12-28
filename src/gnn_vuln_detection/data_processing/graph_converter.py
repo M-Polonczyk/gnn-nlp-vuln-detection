@@ -266,7 +266,7 @@ class DataclassToGraphConverter:
         # Convert AST to PyG Data
         data = self.ast_converter.ast_to_pyg_data(
             ast_root,
-            sample.cwe_ids_labeled or [0 for _ in range(25)],  # TODO: make dynamic
+            sample.cwe_ids_labeled or [0 for _ in range(9)],  # TODO: make dynamic
             graph_type,
             include_edge_features,
         )

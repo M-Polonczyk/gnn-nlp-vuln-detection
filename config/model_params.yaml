@@ -10,7 +10,7 @@ gcn_standard:
   pool_type: mean
   num_classes: 2
 
-# Graph Attention Network Configuration  
+# Graph Attention Network Configuration
 gat_standard:
   model_type: gat
   hidden_dim: 128
@@ -66,7 +66,7 @@ gcn_multiclass:
   dropout_rate: 0.3
   use_batch_norm: true
   pool_type: combined
-  num_classes: 25  # Top 25 CWE types
+  num_classes: 9
 
 # Default configuration
 default:
@@ -80,15 +80,6 @@ default:
 
 vulnerabilities:
   - index: 0
-    name: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')
-    cwe_id: CWE-79
-    cves_in_kev: 3
-    rank_last_year: 2
-    trend: upward
-    label: Injection
-    label_id: 0
-
-  - index: 1
     name: Out-of-bounds Write
     cwe_id: CWE-787
     cves_in_kev: 18
@@ -97,33 +88,7 @@ vulnerabilities:
     label: Memory Corruption
     label_id: 1
 
-  - index: 2
-    name: Improper Neutralization of Special Elements used in an SQL Command ('SQL Injection')
-    cwe_id: CWE-89
-    cves_in_kev: 4
-    rank_last_year: 3
-    label: Injection
-    label_id: 0
-
-  - index: 3
-    name: Cross-Site Request Forgery (CSRF)
-    cwe_id: CWE-352
-    cves_in_kev: 0
-    rank_last_year: 9
-    trend: upward
-    label: Web Security
-    label_id: 2
-
-  - index: 4
-    name: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')
-    cwe_id: CWE-22
-    cves_in_kev: 4
-    rank_last_year: 8
-    trend: upward
-    label: Injection
-    label_id: 0
-
-  - index: 5
+  - index: 1
     name: Out-of-bounds Read
     cwe_id: CWE-125
     cves_in_kev: 3
@@ -132,16 +97,7 @@ vulnerabilities:
     label: Memory Corruption
     label_id: 1
 
-  - index: 6
-    name: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
-    cwe_id: CWE-78
-    cves_in_kev: 5
-    rank_last_year: 5
-    trend: downward
-    label: Injection
-    label_id: 0
-
-  - index: 7
+  - index: 2
     name: Use After Free
     cwe_id: CWE-416
     cves_in_kev: 5
@@ -150,33 +106,7 @@ vulnerabilities:
     label: Memory Corruption
     label_id: 1
 
-  - index: 8
-    name: Missing Authorization
-    cwe_id: CWE-862
-    cves_in_kev: 0
-    rank_last_year: 11
-    trend: upward
-    label: Authorization
-    label_id: 3
-
-  - index: 9
-    name: Unrestricted Upload of File with Dangerous Type
-    cwe_id: CWE-434
-    cves_in_kev: 0
-    rank_last_year: 10
-    label: Web Security
-    label_id: 2
-
-  - index: 10
-    name: Improper Control of Generation of Code ('Code Injection')
-    cwe_id: CWE-94
-    cves_in_kev: 7
-    rank_last_year: 23
-    trend: upward
-    label: Injection
-    label_id: 0
-
-  - index: 11
+  - index: 3
     name: Improper Input Validation
     cwe_id: CWE-20
     cves_in_kev: 1
@@ -185,43 +115,7 @@ vulnerabilities:
     label: Input Validation
     label_id: 4
 
-  - index: 12
-    name: Improper Neutralization of Special Elements used in a Command ('Command Injection')
-    cwe_id: CWE-77
-    cves_in_kev: 4
-    rank_last_year: 16
-    trend: upward
-    label: Injection
-    label_id: 0
-
-  - index: 13
-    name: Improper Authentication
-    cwe_id: CWE-287
-    cves_in_kev: 4
-    rank_last_year: 13
-    trend: downward
-    label: Authentication
-    label_id: 5
-
-  - index: 14
-    name: Improper Privilege Management
-    cwe_id: CWE-269
-    cves_in_kev: 0
-    rank_last_year: 22
-    trend: upward
-    label: Authorization
-    label_id: 3
-
-  - index: 15
-    name: Deserialization of Untrusted Data
-    cwe_id: CWE-502
-    cves_in_kev: 5
-    rank_last_year: 15
-    trend: downward
-    label: Data Handling
-    label_id: 6
-
-  - index: 16
+  - index: 4
     name: Exposure of Sensitive Information to an Unauthorized Actor
     cwe_id: CWE-200
     cves_in_kev: 0
@@ -230,24 +124,7 @@ vulnerabilities:
     label: Information Disclosure
     label_id: 7
 
-  - index: 17
-    name: Incorrect Authorization
-    cwe_id: CWE-863
-    cves_in_kev: 2
-    rank_last_year: 24
-    trend: upward
-    label: Authorization
-    label_id: 3
-
-  - index: 18
-    name: Server-Side Request Forgery (SSRF)
-    cwe_id: CWE-918
-    cves_in_kev: 2
-    rank_last_year: 19
-    label: Web Security
-    label_id: 2
-
-  - index: 19
+  - index: 5
     name: Improper Restriction of Operations within the Bounds of a Memory Buffer
     cwe_id: CWE-119
     cves_in_kev: 2
@@ -256,7 +133,7 @@ vulnerabilities:
     label: Memory Corruption
     label_id: 1
 
-  - index: 20
+  - index: 6
     name: NULL Pointer Dereference
     cwe_id: CWE-476
     cves_in_kev: 0
@@ -265,16 +142,7 @@ vulnerabilities:
     label: Memory Corruption
     label_id: 1
 
-  - index: 21
-    name: Use of Hard-coded Credentials
-    cwe_id: CWE-798
-    cves_in_kev: 2
-    rank_last_year: 18
-    trend: downward
-    label: Authentication
-    label_id: 5
-
-  - index: 22
+  - index: 7
     name: Integer Overflow or Wraparound
     cwe_id: CWE-190
     cves_in_kev: 3
@@ -283,7 +151,7 @@ vulnerabilities:
     label: Memory Corruption
     label_id: 1
 
-  - index: 23
+  - index: 8
     name: Uncontrolled Resource Consumption
     cwe_id: CWE-400
     cves_in_kev: 0
@@ -291,12 +159,3 @@ vulnerabilities:
     trend: upward
     label: Resource Management
     label_id: 8
-
-  - index: 24
-    name: Missing Authentication for Critical Function
-    cwe_id: CWE-306
-    cves_in_kev: 5
-    rank_last_year: 20
-    trend: downward
-    label: Authentication
-    label_id: 5
