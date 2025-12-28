@@ -116,67 +116,67 @@ def main() -> None:
         dataset_path=dataset_config["diversevul"]["dataset_path"],
     )
 
-    converter = DataclassToGraphConverter()
-    ast_parser = converter.ast_parser
-    samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
-    np.random.shuffle(samples)
-    samples = samples[
-        : len(samples) // 96
-    ]  # Use only part of the dataset for faster training
+    # converter = DataclassToGraphConverter()
+    # ast_parser = converter.ast_parser
+    # samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
+    # np.random.shuffle(samples)
+    # samples = samples[
+    #     : len(samples) // 96
+    # ]  # Use only part of the dataset for faster training
 
-    # Step 1: Convert samples to AST
-    for sample in tqdm(samples, desc="Converting samples to nx graphs"):
-        label_vec = [0] * num_classes
-        if sample.cwe_ids:
-            for cwe in sample.cwe_ids:
-                if cwe in cwe_to_index:
-                    label_vec[cwe_to_index[cwe]] = 1
-        sample.cwe_ids_labeled = label_vec
-        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
-        sample.graph = converter.ast_converter.ast_to_networkx(ast_root)
-    train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
-    del samples  # Free memory
+    # # Step 1: Convert samples to AST
+    # for sample in tqdm(samples, desc="Converting samples to nx graphs"):
+    #     label_vec = [0] * num_classes
+    #     if sample.cwe_ids:
+    #         for cwe in sample.cwe_ids:
+    #             if cwe in cwe_to_index:
+    #                 label_vec[cwe_to_index[cwe]] = 1
+    #     sample.cwe_ids_labeled = label_vec
+    #     ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
+    #     sample.graph = converter.ast_converter.ast_to_networkx(ast_root)
+    # train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
+    # del samples  # Free memory
 
-    # Step 2: Extract features
-    processor = CodeGraphProcessor(
-        node_dim=model_params["gcn_multiclass"]["hidden_dim"]
-    )
-    processor.fit([s.graph for s in train_samples])
+    # # Step 2: Extract features
+    # processor = CodeGraphProcessor(
+    #     node_dim=model_params["gcn_multiclass"]["hidden_dim"]
+    # )
+    # processor.fit([s.graph for s in train_samples])
 
-    # Step 3: Convert samples to PyG Data objects
-    def process_to_pyg(sample_list: list[CodeSample], desc="Converting to PyG data"):
-        pyg_data_list = []
-        for s in tqdm(sample_list, desc=desc):
-            features = processor.process(s.graph)
-            x = torch.tensor(features.node_features, dtype=torch.float)
-            edge_index = torch.tensor(features.edge_index, dtype=torch.long)
-            y = torch.tensor(s.cwe_ids_labeled, dtype=torch.float32).unsqueeze(0)
-            data_dict = {
-                "x": x,
-                "y": y,
-                "edge_index": edge_index,
-                "edge_features": torch.tensor(features.edge_features, dtype=torch.float)
-                if features.edge_features is not None
-                else None,
-            }
-            pyg_data_list.append(Data(**data_dict))
-        return pyg_data_list
+    # # Step 3: Convert samples to PyG Data objects
+    # def process_to_pyg(sample_list: list[CodeSample], desc="Converting to PyG data"):
+    #     pyg_data_list = []
+    #     for s in tqdm(sample_list, desc=desc):
+    #         features = processor.process(s.graph)
+    #         x = torch.tensor(features.node_features, dtype=torch.float)
+    #         edge_index = torch.tensor(features.edge_index, dtype=torch.long)
+    #         y = torch.tensor(s.cwe_ids_labeled, dtype=torch.float32).unsqueeze(0)
+    #         data_dict = {
+    #             "x": x,
+    #             "y": y,
+    #             "edge_index": edge_index,
+    #             "edge_features": torch.tensor(features.edge_features, dtype=torch.float)
+    #             if features.edge_features is not None
+    #             else None,
+    #         }
+    #         pyg_data_list.append(Data(**data_dict))
+    #     return pyg_data_list
 
-    train = process_to_pyg(train_samples, desc="Processing train samples")
-    torch.save(train, "data/processed/train-diversevul-small-c.pt")
-    test = process_to_pyg(test_samples, desc="Processing test samples")
-    torch.save(test, "data/processed/test-diversevul-small-c.pt")
-    val = process_to_pyg(val_samples, desc="Processing val samples")
-    torch.save(val, "data/processed/val-diversevul-small-c.pt")
+    # train = process_to_pyg(train_samples, desc="Processing train samples")
+    # torch.save(train, "data/processed/train-diversevul-small-c.pt")
+    # test = process_to_pyg(test_samples, desc="Processing test samples")
+    # torch.save(test, "data/processed/test-diversevul-small-c.pt")
+    # val = process_to_pyg(val_samples, desc="Processing val samples")
+    # torch.save(val, "data/processed/val-diversevul-small-c.pt")
 
-    # train = torch.load("data/processed/train-diversevul-small-c.pt", weights_only=False)
-    # val = torch.load("data/processed/val-diversevul-small-c.pt", weights_only=False)
-    # test = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
+    # # Free memory
+    # del train_samples
+    # del test_samples
+    # del val_samples
 
-    # Free memory
-    del train_samples
-    del test_samples
-    del val_samples
+    train = torch.load("data/processed/train-diversevul-small-c.pt", weights_only=False)
+    val = torch.load("data/processed/val-diversevul-small-c.pt", weights_only=False)
+    test = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
 
     # Create DataLoader objects
     train_loader = DataLoader(
