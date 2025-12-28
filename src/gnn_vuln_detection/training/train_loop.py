@@ -103,8 +103,8 @@ def train_loop(
         # Validation phase
         y_true, y_pred_probs, y_pred_labels = model.evaluate(val_loader, device)
 
-        thresholds = find_optimal_thresholds(y_true, y_pred_probs)
-        logging.info("Optimal thresholds per class: %s", thresholds)
+        # thresholds = find_optimal_thresholds(y_true, y_pred_probs)
+        # logging.info("Optimal thresholds per class: %s", thresholds)
 
         # Learning rate scheduling
         scheduler.step(avg_train_loss)

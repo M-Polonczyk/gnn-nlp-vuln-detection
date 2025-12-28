@@ -7,7 +7,6 @@ import numpy as np
 import torch
 from torch_geometric.data import Data, Dataset, download_url
 from torch_geometric.utils import from_networkx
-from tree_sitter import Node
 
 from gnn_vuln_detection.code_representation.code_representation import CodeSample
 from gnn_vuln_detection.code_representation.graph_builder import GraphType
@@ -22,7 +21,7 @@ class VulnerabilityDataset(Dataset):
 
     def __init__(
         self,
-        samples: Sequence[CodeSample | Node | nx.DiGraph],
+        samples: Sequence[CodeSample | nx.DiGraph],
         root: str | None = None,
         transform=None,
         pre_transform=None,
@@ -121,14 +120,6 @@ class VulnerabilityDataset(Dataset):
                 self.graph_type,
                 self.include_edge_features,
             )
-        elif isinstance(sample, Node):  # Tree-sitter Node
-            # Assume label 0 for unlabeled samples
-            data = self.ast_converter.ast_to_pyg_data(
-                sample,
-                list(range(9)),  # TODO: pass labels properly
-                self.graph_type,
-                self.include_edge_features,
-            )
         elif isinstance(sample, nx.DiGraph):
             # Convert NetworkX graph to PyG Data
             data = from_networkx(sample)
@@ -138,7 +129,7 @@ class VulnerabilityDataset(Dataset):
             data = sample
         else:
             msg = f"Unsupported sample type: {type(sample)}"
-            raise ValueError(msg)
+            raise TypeError(msg)
 
         # Cache the result
         if self.cache_dir:

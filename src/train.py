@@ -7,7 +7,6 @@ from typing import Any
 
 import numpy as np
 import torch
-from joblib import dump, load
 from sklearn.metrics import f1_score
 from skmultilearn.model_selection import iterative_train_test_split
 from torch_geometric.data import Data
@@ -122,18 +121,8 @@ def main() -> None:
     samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
     np.random.shuffle(samples)
     samples = samples[
-        : len(samples) // 6
+        : len(samples) // 96
     ]  # Use only part of the dataset for faster training
-
-    def get_graph(sample: CodeSample):
-        cache_file = cache_path / f"{sample.id}.pkl"
-        if cache_file.exists():
-            return load(cache_file)
-
-        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
-        graph = converter.ast_converter.ast_to_networkx(ast_root)
-        dump(graph, cache_file)
-        return graph
 
     # Step 1: Convert samples to AST
     for sample in tqdm(samples, desc="Converting samples to nx graphs"):
@@ -143,9 +132,10 @@ def main() -> None:
                 if cwe in cwe_to_index:
                     label_vec[cwe_to_index[cwe]] = 1
         sample.cwe_ids_labeled = label_vec
-        sample.graph = get_graph(sample)
+        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
+        sample.graph = converter.ast_converter.ast_to_networkx(ast_root)
     train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
-    # Sprawdzić podział klas w datasecie
+    del samples  # Free memory
 
     # Step 2: Extract features
     processor = CodeGraphProcessor(
@@ -174,14 +164,19 @@ def main() -> None:
 
     train = process_to_pyg(train_samples, desc="Processing train samples")
     torch.save(train, "data/processed/train-diversevul-small-c.pt")
-    val = process_to_pyg(val_samples, desc="Processing val samples")
-    torch.save(val, "data/processed/val-diversevul-small-c.pt")
     test = process_to_pyg(test_samples, desc="Processing test samples")
     torch.save(test, "data/processed/test-diversevul-small-c.pt")
+    val = process_to_pyg(val_samples, desc="Processing val samples")
+    torch.save(val, "data/processed/val-diversevul-small-c.pt")
 
     # train = torch.load("data/processed/train-diversevul-small-c.pt", weights_only=False)
     # val = torch.load("data/processed/val-diversevul-small-c.pt", weights_only=False)
     # test = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
+
+    # Free memory
+    del train_samples
+    del test_samples
+    del val_samples
 
     # Create DataLoader objects
     train_loader = DataLoader(
@@ -195,19 +190,22 @@ def main() -> None:
         val,
         batch_size=training_config["batch_size"],
         shuffle=False,
-        num_workers=1,
         pin_memory=True,
     )
     test_loader = DataLoader(
         test,
         batch_size=training_config["batch_size"],
         shuffle=False,
-        num_workers=1,
         pin_memory=True,
     )
     print(
         f"Dataset split: {len(train)} train, {len(val)} val, {len(test)} test samples",
     )
+
+    # Free memory
+    del train
+    del test
+    del val
 
     # Train a vulnerability detector
     model, best_val_acc = train_cwe_classifier(
