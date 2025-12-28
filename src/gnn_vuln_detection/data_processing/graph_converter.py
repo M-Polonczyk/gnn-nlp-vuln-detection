@@ -16,6 +16,7 @@ import networkx as nx
 import numpy as np
 import torch
 from torch_geometric.data import Data
+from torch_geometric.utils.convert import from_networkx
 from tree_sitter import Node
 
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
@@ -280,3 +281,28 @@ class DataclassToGraphConverter:
                 setattr(data, key, value)
 
         return data
+
+
+def networkx_to_pyg_data(
+    nx_graph: nx.Graph,
+    node_features: np.ndarray,
+    labels: list[int],
+    include_edge_features: bool = False,
+) -> Data:
+    """Convert NetworkX graph to PyTorch Geometric Data object."""
+    pyg_data = from_networkx(nx_graph)
+
+    # Set node features
+    pyg_data.x = torch.tensor(node_features, dtype=torch.float)
+
+    # Set labels
+    pyg_data.y = torch.tensor(labels, dtype=torch.float).unsqueeze(0)
+
+    # Optionally set edge features
+    if include_edge_features and "edge_attr" in pyg_data:
+        pyg_data.edge_attr = torch.tensor(
+            pyg_data.edge_attr,
+            dtype=torch.float,
+        )
+
+    return pyg_data

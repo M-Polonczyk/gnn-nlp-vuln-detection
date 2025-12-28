@@ -7,16 +7,12 @@ from typing import Any
 
 import numpy as np
 import torch
-from joblib import dump, load
 from sklearn.metrics import f1_score
 from skmultilearn.model_selection import iterative_train_test_split
-from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
-from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from gnn_vuln_detection.code_representation.code_representation import CodeSample
-from gnn_vuln_detection.code_representation.feature_extractor import CodeGraphProcessor
 from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
 from gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 from gnn_vuln_detection.training import metrics, train_cwe_classifier
@@ -127,64 +123,68 @@ def main() -> None:
     samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
     np.random.shuffle(samples)
     samples = samples[
-        : len(samples) // 96
+        : len(samples) // 48
     ]  # Use only part of the dataset for faster training
 
-    def get_graph(sample: CodeSample):
-        cache_file = cache_path / f"{sample.id}.pkl"
-        if cache_file.exists():
-            return load(cache_file)
+    # def get_graph(sample: CodeSample):
+    #     cache_file = cache_path / f"{sample.id}.pkl"
+    #     if cache_file.exists():
+    #         return load(cache_file)
 
-        ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
-        graph = converter.ast_converter.ast_to_networkx(ast_root)
-        dump(graph, cache_file)
-        return graph
+    #     ast_root = ast_parser.parse_code_to_ast(ast_parser.cleanup_code(sample.code))
+    #     graph = converter.ast_converter.ast_to_networkx(ast_root)
+    #     dump(graph, cache_file)
+    #     return graph
 
-    # Step 1: Convert samples to AST
-    for sample in tqdm(samples, desc="Converting samples to nx graphs"):
-        label_vec = [0] * num_classes
-        if sample.cwe_ids:
-            for cwe in sample.cwe_ids:
-                if cwe in cwe_to_index:
-                    label_vec[cwe_to_index[cwe]] = 1
-        sample.cwe_ids_labeled = label_vec
-        sample.graph = get_graph(sample)
+    # # Step 1: Convert samples to AST
+    # for sample in tqdm(samples, desc="Converting samples to nx graphs"):
+    #     label_vec = [0] * num_classes
+    #     if sample.cwe_ids:
+    #         for cwe in sample.cwe_ids:
+    #             if cwe in cwe_to_index:
+    #                 label_vec[cwe_to_index[cwe]] = 1
+    #     sample.cwe_ids_labeled = label_vec
+    #     sample.graph = get_graph(sample)
+    # train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
+    # # Sprawdzić podział klas w datasecie
 
-    train_samples, val_samples, test_samples = split_multilabel_dataset(samples)
-    # Sprawdzić podział klas w datasecie
+    # # Step 2: Extract features
+    # processor = CodeGraphProcessor(
+    #     node_dim=model_params["gcn_multiclass"]["hidden_dim"]
+    # )
+    # processor.fit([s.graph for s in train_samples])
 
-    # Step 2: Extract features
-    processor = CodeGraphProcessor(
-        node_dim=model_params["gcn_multiclass"]["hidden_dim"]
-    )
-    processor.fit([s.graph for s in train_samples])
+    # # Step 3: Convert samples to PyG Data objects
+    # def process_to_pyg(sample_list: list[CodeSample], desc="Converting to PyG data"):
+    #     pyg_data_list = []
+    #     for s in tqdm(sample_list, desc=desc):
+    #         features = processor.process(s.graph)
+    #         x = torch.tensor(features.node_features, dtype=torch.float)
+    #         edge_index = torch.tensor(features.edge_index, dtype=torch.long)
+    #         y = torch.tensor(s.cwe_ids_labeled, dtype=torch.float32).unsqueeze(0)
+    #         data_dict = {
+    #             "x": x,
+    #             "y": y,
+    #             "edge_index": edge_index,
+    #             "edge_features": torch.tensor(features.edge_features, dtype=torch.float)
+    #             if features.edge_features is not None
+    #             else None,
+    #         }
+    #         pyg_data_list.append(Data(**data_dict))
+    #     print(from_networkx(s.graph))
+    #     print(pyg_data_list[-1])
+    #     return pyg_data_list
 
-    # Step 3: Convert samples to PyG Data objects
-    def process_to_pyg(sample_list: list[CodeSample], desc="Converting to PyG data"):
-        pyg_data_list = []
-        for s in tqdm(sample_list, desc=desc):
-            features = processor.process(s.graph)
-            x = torch.tensor(features.node_features, dtype=torch.float)
-            edge_index = torch.tensor(features.edge_index, dtype=torch.long)
-            y = torch.tensor(s.cwe_ids_labeled, dtype=torch.float32).unsqueeze(0)
-            data_dict = {
-                "x": x,
-                "y": y,
-                "edge_index": edge_index,
-                "edge_features": torch.tensor(features.edge_features, dtype=torch.float)
-                if features.edge_features is not None
-                else None,
-            }
-            pyg_data_list.append(Data(**data_dict))
-        return pyg_data_list
+    # train = process_to_pyg(train_samples, desc="Processing train samples")
+    # torch.save(train, "data/processed/train-diversevul-small-c.pt")
+    # val = process_to_pyg(val_samples, desc="Processing val samples")
+    # torch.save(val, "data/processed/val-diversevul-small-c.pt")
+    # test = process_to_pyg(test_samples, desc="Processing test samples")
+    # torch.save(test, "data/processed/test-diversevul-small-c.pt")
 
-    train = process_to_pyg(train_samples, desc="Processing train samples")
-    val = process_to_pyg(val_samples, desc="Processing val samples")
-    test = process_to_pyg(test_samples, desc="Processing test samples")
-
-    torch.save(train, "data/processed/train-diversevul-small-c.pt")
-    torch.save(val, "data/processed/val-diversevul-small-c.pt")
-    torch.save(test, "data/processed/test-diversevul-small-c.pt")
+    train = torch.load("data/processed/train-diversevul-small-c.pt", weights_only=False)
+    val = torch.load("data/processed/val-diversevul-small-c.pt", weights_only=False)
+    test = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
 
     # Create DataLoader objects
     train_loader = DataLoader(

@@ -21,7 +21,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 THRESHOLD = 0.6
-MODEL_PATH = "checkpoints/cwe_detector.pth"
+MODEL_PATH = "cwe_detector.pth"
 
 
 def load_model(input_dim, device):
@@ -100,10 +100,10 @@ def predict_batch(
 
 
 def load_dataset() -> DataLoader:
-    return torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
-    # if isinstance(data, DataLoader):
-    #     return data
-    # return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
+    data = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
+    if isinstance(data, DataLoader):
+        return data
+    return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
 
 
 def main():
@@ -141,7 +141,7 @@ def main():
         class_true = [y_true[j][i] for j in range(len(y_true))]
         class_preds = [y_pred_labels[j][i] for j in range(len(y_pred_labels))]
         class_f1 = f1_score(class_true, class_preds)
-        logging.info(f"F1 score for CWE {class_cwe} (index {i}): {class_f1:.4f}")
+        logging.info("F1 score for CWE %s (index %d): %.4f", class_cwe, i, class_f1)
 
     for y_t, pred in zip(y_true, y_pred_labels, strict=False):
         cwes_predicted = [val["cwe_id"] for val in cwes if pred[val["index"]] == 1]
@@ -151,6 +151,8 @@ def main():
                 "Actual CWEs: %s",
                 ", ".join([index_to_cwe[i] for i, v in enumerate(y_t) if v == 1]),
             )
+
+    metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
 
 
 if __name__ == "__main__":

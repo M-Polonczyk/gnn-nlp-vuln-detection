@@ -98,7 +98,6 @@ def train_loop(
                 "accuracy": train_acc,
                 "loss": avg_train_loss,
             },
-            avg_train_loss,
         )
 
         # Validation phase
@@ -113,7 +112,7 @@ def train_loop(
             val_metrics = calculate_metrics(
                 y_true, y_pred_probs, y_pred_labels, "macro"
             )
-            val_tracker.update(val_metrics, 0.0)
+            val_tracker.update(val_metrics)
             if epoch % 10 == 0 or epoch == num_epochs - 1:
                 logging.info(
                     "Epoch %3d: Train Loss=%.4f, Train Acc=%.4f, Val F1: %.4f",
@@ -219,13 +218,12 @@ def classifier_train_loop(
                 "accuracy": train_acc,
                 "loss": avg_train_loss,
             },
-            avg_train_loss,
         )
 
         # Validation phase
         y_true, y_pred_probs, y_pred_labels = model.evaluate(val_loader, device)
         val_metrics = calculate_metrics(y_true, y_pred_probs, y_pred_labels)
-        val_tracker.update(val_metrics, 0.0)
+        val_tracker.update(val_metrics)
 
         # Learning rate scheduling
         scheduler.step(avg_train_loss)

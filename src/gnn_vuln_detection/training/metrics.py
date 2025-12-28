@@ -1,8 +1,9 @@
-import os
+from pathlib import Path
 from typing import Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from sklearn.metrics import (
     accuracy_score,
@@ -20,112 +21,53 @@ class MetricTracker:
     A class to track and store various metrics during model training and evaluation.
     """
 
-    def __init__(self, metric_names) -> None:
+    def __init__(self, metric_names: list[str]) -> None:
         self.metric_names = metric_names
-        self.history = {name: [] for name in metric_names}
-        self.history["loss"] = []
+        self._history = {name: [] for name in metric_names}
+        self._history["loss"] = []
 
-    def _make_metrics(self, save_dir="plots", filename_prefix="training"):
-        """
-        Plots the training/validation metrics over epochs using matplotlib and seaborn.
-        Saves the plots to a specified directory.
-        """
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        epochs = range(1, len(self.history["loss"]) + 1)
-
-        # Plot Loss
-        plt.figure(figsize=(10, 6))
-        sns.lineplot(x=epochs, y=self.history["loss"], marker="o")
-        plt.title(f"{filename_prefix.replace('_', ' ').title()} Loss Over Epochs")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.grid(True)
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_dir, f"{filename_prefix}_loss_curve.png"))
-        plt.close()
-
-        # Plot other metrics
-        for metric_name in self.metric_names:
-            if self.history[metric_name]:  # Ensure metric history is not empty
-                plt.figure(figsize=(10, 6))
-                sns.lineplot(x=epochs, y=self.history[metric_name], marker="o")
-                plt.title(
-                    f"{filename_prefix.replace('_', ' ').title()} {metric_name.replace('_', ' ').title()} Over Epochs",
-                )
-                plt.xlabel("Epoch")
-                plt.ylabel(metric_name.replace("_", " ").title())
-                plt.grid(True)
-                plt.tight_layout()
-
-        return plt
-
-    def update(self, metrics, loss_value) -> None:
+    def update(self, metrics) -> None:
         """Updates the stored metric history."""
         if not isinstance(metrics, dict):
             metrics = dict(zip(self.metric_names, metrics, strict=False))
+
         for name, value in metrics.items():
-            self.history[name].append(value)
-        self.history["loss"].append(loss_value)
+            self._history[name].append(value)
 
-    def get_last_metrics(self):
+    def get_last_metrics(self) -> dict[str, float]:
         """Returns the last recorded metric values and loss."""
-        last_metrics = {name: self.history[name][-1] for name in self.metric_names}
-        last_metrics["loss"] = self.history["loss"][-1]
-        return last_metrics
+        return {name: self._history[name][-1] for name in self.metric_names}
 
-    def get_history(self):
+    def get_history(self) -> dict[str, list[float]]:
         """Returns the entire metric history."""
-        return self.history
+        return self._history
 
-    def plot_metrics(self, save_dir="plots", filename_prefix="training") -> None:
+    def save_metrics(self, save_dir="plots", filename_prefix="train") -> None:
         """
         Plots the training/validation metrics over epochs using matplotlib and seaborn.
         Saves the plots to a specified directory.
         """
-        self._make_metrics(save_dir, filename_prefix)
-        plt.show()
-
-    def save_metrics(self, save_dir="plots", filename_prefix="training") -> None:
-        """
-        Plots the training/validation metrics over epochs using matplotlib and seaborn.
-        Saves the plots to a specified directory.
-        """
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        epochs = range(1, len(self.history["loss"]) + 1)
-
-        # Plot Loss
-        plt.figure(figsize=(10, 6))
-        sns.lineplot(x=epochs, y=self.history["loss"], marker="o")
-        plt.title(f"{filename_prefix.replace('_', ' ').title()} Loss Over Epochs")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.grid(True)
-        plt.tight_layout()
-        plt.savefig(os.path.join(save_dir, f"{filename_prefix}_loss_curve.png"))
-        plt.close()
+        save_dir = Path(save_dir)
+        if not save_dir.exists():
+            save_dir.mkdir(parents=True, exist_ok=True)
 
         # Plot other metrics
-        for metric_name in self.metric_names:
-            if self.history[metric_name]:  # Ensure metric history is not empty
-                plt.figure(figsize=(10, 6))
-                sns.lineplot(x=epochs, y=self.history[metric_name], marker="o")
-                plt.title(
-                    f"{filename_prefix.replace('_', ' ').title()} {metric_name.replace('_', ' ').title()} Over Epochs",
-                )
-                plt.xlabel("Epoch")
-                plt.ylabel(metric_name.replace("_", " ").title())
-                plt.grid(True)
-                plt.tight_layout()
-                plt.savefig(
-                    os.path.join(
-                        save_dir, f"{filename_prefix}_{metric_name}_curve.png"
-                    ),
-                )
-                plt.close()
+        for metric_name, values in self._history.items():
+            if not values:
+                continue
+            epochs = range(1, len(values) + 1)
+
+            plt.figure(figsize=(10, 6))
+            sns.lineplot(x=epochs, y=values, marker="o")
+            plt.title(
+                f"{filename_prefix.replace('_', ' ').title()} {metric_name.replace('_', ' ').title()} Over Epochs",
+            )
+            plt.xlabel("Epoch")
+            plt.ylabel(metric_name.replace("_", " ").title())
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(save_dir / f"{filename_prefix}_{metric_name}_curve.png")
+            plt.close()
 
 
 def calculate_metrics(
@@ -209,6 +151,9 @@ def plot_confusion_matrix(
         save_dir (str): Directory to save the plot.
         filename (str): Name of the file to save the plot.
     """
+    if not Path(save_dir).exists():
+        Path(save_dir).mkdir(parents=True, exist_ok=True)
+
     multiclass_count_threshold = 2
     if len(labels) < multiclass_count_threshold:
         msg = "At least two labels are required to plot a confusion matrix."
@@ -218,20 +163,25 @@ def plot_confusion_matrix(
     else:
         cm = confusion_matrix(y_true, y_pred_labels)
 
-    plt.figure(figsize=(8, 7))
-    sns.heatmap(
-        cm,
-        annot=True,
-        fmt="d",
-        cmap="Blues",
-        xticklabels=labels,
-        yticklabels=labels,
+    performance = []
+    for i, label in enumerate(labels):
+        _, fp, fn, tp = cm[i].ravel()
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        performance.append([label, tp, fp, fn, precision, recall])
+
+    df_perf = pd.DataFrame(
+        performance, columns=["CWE", "TP", "FP", "FN", "Precision", "Recall"]
     )
+
+    plt.figure(figsize=(12, 10))
+    df_plot = df_perf.set_index("CWE")[["TP", "FP", "FN"]]
+    sns.heatmap(df_plot, annot=True, fmt="d", cmap="YlGnBu")
     plt.title("Confusion Matrix")
     plt.xlabel("Predicted Label")
     plt.ylabel("True Label")
     plt.tight_layout()
-    if not os.path.exists(save_dir):
-        os.makedirs(save_dir)
-    plt.savefig(os.path.join(save_dir, filename))
+    plt.savefig(Path(save_dir) / filename)
     plt.close()
+
+    df_perf.to_csv(Path(save_dir) / "cwe_metrics.csv", index=False)
