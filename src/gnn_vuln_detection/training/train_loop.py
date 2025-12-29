@@ -40,7 +40,7 @@ def train_loop(
     num_epochs: int = 100,
     device: Literal["cpu", "cuda"] = "cpu",
     pos_weight: torch.Tensor | None = None,
-):
+) -> tuple[BaseGNN, float]:
     """
     Main training loop for the GNN model.
     """
@@ -100,6 +100,9 @@ def train_loop(
         y_true, y_pred_probs, y_pred_labels = model.evaluate(val_loader, device)
 
         thresholds = find_optimal_thresholds(y_true, y_pred_probs)
+        logging.debug(
+            "Optimal thresholds: %s", ", ".join(f"{t:.2f}" for t in thresholds)
+        )
 
         y_pred_labels = (y_pred_probs >= thresholds).astype(int)
 
@@ -124,6 +127,9 @@ def train_loop(
                 val_metrics["accuracy"],
                 val_metrics["f1_score"],
             )
+            logging.info("Thresholds: %s", ", ".join(f"{t:.2f}" for t in thresholds))
+            logging.debug("Train Metrics: %s", train_tracker.get_last_metrics())
+            logging.debug("Val Metrics: %s", val_metrics)
 
     logging.info("Training finished.")
 
@@ -135,7 +141,7 @@ def train_loop(
 
     logging.info("Training and validation metric plots saved to 'plots/' directory.")
 
-    return model, best_val_f1
+    return model, best_val_f1  # pyright: ignore[reportReturnType]
 
 
 def classifier_train_loop(
