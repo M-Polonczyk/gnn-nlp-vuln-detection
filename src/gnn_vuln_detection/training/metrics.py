@@ -75,7 +75,7 @@ def calculate_metrics(
     y_pred_probs,
     y_pred_labels,
     average: Literal["micro", "macro", "samples", "weighted", "binary"] = "binary",
-):
+) -> dict[str, float | np.ndarray]:
     """
     Calculates a set of common classification metrics.
 
