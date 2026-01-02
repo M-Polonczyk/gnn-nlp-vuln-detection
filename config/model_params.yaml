@@ -58,14 +58,14 @@ gcn_lightweight:
   pool_type: mean
   num_classes: 2
 
-# Multi-class Configuration (for CWE classification)
+# Multi-label Configuration (for CWE classification)
 gcn_multiclass:
   model_type: gcn
   hidden_dim: 256
   num_layers: 4
   dropout_rate: 0.3
   use_batch_norm: true
-  pool_type: combined
+  pool_type: mean
   num_classes: 9
 
 # Default configuration

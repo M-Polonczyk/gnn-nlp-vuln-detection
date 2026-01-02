@@ -186,7 +186,7 @@ class MultilabelGCN(BaseGNN):
             nn.Linear(hidden_dim // 2, num_classes),
         )
 
-    def _eval_function(self, logits):
+    def _eval_function(self, logits) -> tuple[torch.Tensor, torch.Tensor]:
         probs = torch.sigmoid(logits)
         return probs, (probs >= self.label_threshold).float()
 

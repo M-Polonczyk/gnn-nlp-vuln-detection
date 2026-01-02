@@ -16,12 +16,14 @@ from gnn_vuln_detection.models.factory import (
 from gnn_vuln_detection.training import metrics
 from gnn_vuln_detection.utils import config_loader
 
+from .gnn_vuln_detection.utils import file_loader
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
 )
 THRESHOLD = 0.6
-MODEL_PATH = "cwe_detector.pth"
+MODEL_PATH = "checkpoints/cwe_detector.pth"
 
 
 def load_model(input_dim, device):
@@ -99,8 +101,10 @@ def predict_batch(
         exit()
 
 
-def load_dataset() -> DataLoader:
-    data = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
+def load_dataset(dataset_type="test") -> DataLoader:
+    data = torch.load(
+        f"data/processed/{dataset_type}-diversevul-small-c.pt", weights_only=False
+    )
     if isinstance(data, DataLoader):
         return data
     return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
@@ -122,12 +126,19 @@ def main():
     )
     converter = DataclassToGraphConverter()
     # samples = diversevul_loader.load_dataset([val["cwe_id"] for val in cwes])
-    samples = load_dataset()
+    test_samples = load_dataset()
+    val_samples = load_dataset("val")
     # predict_batch(samples, cwes, index_to_cwe, device=device)
 
-    model = load_model(input_dim=samples.dataset[0].x.shape[1], device=device)
+    model = load_model(input_dim=test_samples.dataset[0].x.shape[1], device=device)
     model.label_threshold = THRESHOLD
-    y_true, y_pred_probs, y_pred_labels = model.evaluate(samples, device)
+    y_true, y_pred_probs, y_pred_labels = model.evaluate(val_samples, device)
+    thresholds = [
+        float(t)
+        for t in file_loader.load_file("checkpoints/optimal_thresholds.csv").split(",")
+    ]
+    y_true, y_pred_probs, y_pred_labels = model.evaluate(test_samples, device)
+    y_pred_labels = (y_pred_probs >= thresholds).astype(int)
     logging.info("y_true: %s", y_true)
     logging.info("y_probs: %s", y_pred_probs)
     logging.info("y_labels: %s", y_pred_labels)

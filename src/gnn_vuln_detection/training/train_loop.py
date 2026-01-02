@@ -8,6 +8,7 @@ from torch.optim import Optimizer
 from torch_geometric.loader import DataLoader
 
 from src.gnn_vuln_detection.models.gnn import BaseGNN
+from src.gnn_vuln_detection.utils.file_loader import save_file
 
 from .metrics import MetricTracker, calculate_metrics
 
@@ -83,7 +84,7 @@ def train_loop(
 
             loss = criterion(out, batch.y.float())  # BCEWithLogitsLoss
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)  # TODO
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
             train_loss += loss.item()
@@ -132,6 +133,11 @@ def train_loop(
             logging.debug("Val Metrics: %s", val_metrics)
 
     logging.info("Training finished.")
+
+    save_file(
+        "checkpoints/optimal_thresholds.csv",
+        ",".join(str(t) for t in thresholds),
+    )
 
     try:
         train_tracker.save_metrics(filename_prefix="train")
