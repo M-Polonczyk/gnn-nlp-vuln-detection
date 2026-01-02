@@ -62,7 +62,7 @@ gcn_lightweight:
 gcn_multiclass:
   model_type: gcn
   hidden_dim: 256
-  num_layers: 4
+  num_layers: 3
   dropout_rate: 0.3
   use_batch_norm: true
   pool_type: mean
