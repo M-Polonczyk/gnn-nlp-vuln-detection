@@ -14,9 +14,7 @@ from gnn_vuln_detection.models.factory import (
     GNNModelFactory,
 )
 from gnn_vuln_detection.training import metrics
-from gnn_vuln_detection.utils import config_loader
-
-from .gnn_vuln_detection.utils import file_loader
+from gnn_vuln_detection.utils import config_loader, file_loader
 
 logging.basicConfig(
     level=logging.INFO,
