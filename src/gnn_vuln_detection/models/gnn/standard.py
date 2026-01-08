@@ -152,7 +152,9 @@ class MultilabelGCN(BaseGNN):
         self.dropout_rate = dropout_rate
         self.use_batch_norm = use_batch_norm
         self.pool_type = pool_type
-        self.label_threshold = 0.5  # Threshold for multi-label classification
+        self.label_threshold: float | list[float] = (
+            0.5  # Threshold for multi-label classification
+        )
 
         # GCN layers
         self.convs = nn.ModuleList()
@@ -188,7 +190,8 @@ class MultilabelGCN(BaseGNN):
 
     def _eval_function(self, logits) -> tuple[torch.Tensor, torch.Tensor]:
         probs = torch.sigmoid(logits)
-        return probs, (probs >= self.label_threshold).float()
+        threshold = torch.tensor(self.label_threshold, device=probs.device)
+        return probs, (probs >= threshold).float()
 
     def forward(self, x, edge_index, batch):
         if self.use_batch_norm and len(self.batch_norms) > 0:

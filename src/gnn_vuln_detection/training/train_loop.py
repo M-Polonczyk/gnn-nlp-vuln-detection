@@ -109,11 +109,15 @@ def train_loop(
         y_true, y_pred_probs, y_pred_labels = model.evaluate(val_loader, device)
 
         thresholds = find_optimal_thresholds(y_true, y_pred_probs)
+        if hasattr(model, "label_threshold"):
+            model.label_threshold = thresholds  # pyright: ignore[reportArgumentType]
         logging.debug(
             "Optimal thresholds: %s", ", ".join(f"{t:.2f}" for t in thresholds)
         )
 
-        y_pred_labels = (y_pred_probs >= thresholds).astype(int)
+        # y_pred_labels = (y_pred_probs >= thresholds).astype(
+        #     int
+        # )  # Probably can be removed
 
         val_metrics = calculate_metrics(y_true, y_pred_probs, y_pred_labels, "macro")
         val_tracker.update(val_metrics)
