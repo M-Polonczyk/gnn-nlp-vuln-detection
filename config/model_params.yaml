@@ -65,7 +65,7 @@ gcn_multiclass:
   num_layers: 3
   dropout_rate: 0.3
   use_batch_norm: true
-  pool_type: mean
+  pool_type: max
   num_classes: 9
 
 # Default configuration
