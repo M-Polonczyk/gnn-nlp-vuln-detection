@@ -70,6 +70,52 @@ class MetricTracker:
             plt.close()
 
 
+def calculate_binary_accuracy(y_true, y_pred_labels):
+    """
+    Calculates binary accuracy for multi-label classification.
+
+    A sample is considered correctly classified if:
+    - It is safe (all labels 0) and predicted as safe (all labels 0), or
+    - It is vulnerable (at least one label 1) and at least one correct label is predicted.
+
+    Args:
+        y_true (np.array): True labels.
+        y_pred_labels (np.array): Predicted class labels.
+
+    Returns:
+        float: Binary accuracy score.
+    """
+    is_vuln_true = (y_true.sum(axis=1) > 0).astype(int)
+    is_vuln_pred = (y_pred_labels.sum(axis=1) > 0).astype(int)
+
+    return accuracy_score(is_vuln_true, is_vuln_pred)
+
+
+def calculate_any_label_true(y_true, y_pred_labels) -> float:
+    """
+    - If sample is SAFE (all 0) and Pred is SAFE (all 0) -> Success (1)
+    - If sample is VULN and Intersection(True, Pred) > 0 -> Success (1)
+    - Otherwise -> Failure (0)
+    """
+
+    # Calculate intersection (bitwise AND) sum per row
+    intersection_counts = (y_true * y_pred_labels).sum(axis=1)
+
+    # Identify correct predictions:
+    # Case A: At least one correct label found (intersection > 0)
+    has_match = intersection_counts > 0
+
+    # Case B: Correctly predicted as Safe (both true and pred have 0 labels)
+    true_is_safe = y_true.sum(axis=1) == 0
+    pred_is_safe = y_pred_labels.sum(axis=1) == 0
+    correct_safe = true_is_safe & pred_is_safe
+
+    # Combine cases
+    success_vector = has_match | correct_safe
+
+    return success_vector.mean()
+
+
 def calculate_metrics(
     y_true,
     y_pred_probs,
@@ -118,18 +164,28 @@ def calculate_metrics(
             average=average,
             zero_division=0,
         )
-        if (
-            y_pred_probs is not None and len(np.unique(y_true)) == 2
-        ):  # ROC AUC is typically for binary classification
-            metrics["roc_auc"] = roc_auc_score(y_true, y_pred_probs)
+        metrics["roc_auc"] = roc_auc_score(y_true, y_pred_probs)
+        if average != "binary":
+            # --- Custom Metric: Binary Accuracy (Is Vulnerable vs Is Safe) ---
+            # Logic: A sample is vulnerable if it has at least one label (sum > 0).
+            # We compare the "vulnerability status" of true vs pred.
+            metrics["binary_accuracy"] = calculate_binary_accuracy(
+                y_true, y_pred_labels
+            )
+
+            # --- Custom Metric: Any Label True (Partial Match / Soft Accuracy) ---
+            # Logic:
+            # - If sample is SAFE (all 0) and Pred is SAFE (all 0) -> Success (1)
+            # - If sample is VULN and Intersection(True, Pred) > 0 -> Success (1)
+            # - Otherwise -> Failure (0)
+            metrics["any_label_true"] = calculate_any_label_true(y_true, y_pred_labels)
     else:
         # If only one class is present, set precision, recall, f1_score,
         # roc_auc to 0 or nan as appropriate
         metrics["precision"] = 0.0
         metrics["recall"] = 0.0
         metrics["f1_score"] = 0.0
-        if y_pred_probs is not None and len(np.unique(y_true)) == 2:
-            metrics["roc_auc"] = 0.0  # Or np.nan
+        metrics["roc_auc"] = 0.0
 
     return metrics
 

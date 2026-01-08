@@ -49,7 +49,15 @@ def train_loop(
     train_tracker = MetricTracker(metric_names=["loss"])
     train_loader_len = len(train_loader)
     val_tracker = MetricTracker(
-        metric_names=["accuracy", "precision", "recall", "f1_score", "roc_auc"],
+        metric_names=[
+            "accuracy",
+            "precision",
+            "recall",
+            "f1_score",
+            "roc_auc",
+            "binary_accuracy",
+            "any_label_true",
+        ],
     )
 
     if pos_weight is not None:
