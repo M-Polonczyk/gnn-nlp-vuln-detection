@@ -230,7 +230,7 @@ def main() -> None:
     print("\nEvaluating on test set...")
     y_true, y_pred_probs, y_pred_labels = model.evaluate(test_loader, device)
     calculated_metrics = metrics.calculate_metrics(
-        y_true, y_pred_probs, y_pred_labels, "macro"
+        y_true, y_pred_probs, y_pred_labels, 2, "macro"
     )
     acc, prec, rec, f1, roc_auc = (
         calculated_metrics["accuracy"],

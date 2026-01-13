@@ -41,6 +41,7 @@ def train_loop(
     num_epochs: int = 100,
     device: Literal["cpu", "cuda"] = "cpu",
     pos_weight: torch.Tensor | None = None,
+    min_delta: float = 0.01,
 ) -> tuple[BaseGNN, float]:
     """
     Main training loop for the GNN model.
@@ -126,15 +127,23 @@ def train_loop(
         val_tracker.update(val_metrics)
 
         # Learning rate scheduling
-        # current_fbeta = val_metrics["fbeta_score"] #TODO
-        scheduler.step(val_metrics["f1_score"])
+        current_fbeta = val_metrics["fbeta_score"]  # TODO
+        scheduler.step(current_fbeta)
 
         # Save best model based on validation F1-score
         if val_metrics["f1_score"] > best_val_f1:
             best_val_f1 = val_metrics["f1_score"]
             torch.save(model.state_dict(), "best_gnn_model.pt")
             logging.info("Saved best model with Val F1: %.4f", best_val_f1)
-            # break
+        if current_fbeta > best_val_fbeta:
+            best_val_fbeta = current_fbeta
+            torch.save(model.state_dict(), "best_gnn_model_fbeta.pt")
+            logging.info("Saved best model with Val Fbeta: %.4f", best_val_fbeta)
+        if current_fbeta > (best_val_fbeta + min_delta):
+            best_val_fbeta = current_fbeta
+            torch.save(model.state_dict(), "best_gnn_model_fbeta.pt")
+            logging.info("Saved best model with Val Fbeta: %.4f", best_val_fbeta)
+            logging.info("Model stopped improving at epoch %d", epoch)
 
         if epoch % 10 == 0 or epoch == num_epochs - 1:
             logging.info(
