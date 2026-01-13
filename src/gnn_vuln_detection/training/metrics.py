@@ -9,6 +9,7 @@ from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
     f1_score,
+    fbeta_score,
     multilabel_confusion_matrix,
     precision_score,
     recall_score,
@@ -120,6 +121,7 @@ def calculate_metrics(
     y_true,
     y_pred_probs,
     y_pred_labels,
+    beta=2.0,
     average: Literal["micro", "macro", "samples", "weighted", "binary"] = "binary",
 ) -> dict[str, float | np.ndarray]:
     """
@@ -163,6 +165,12 @@ def calculate_metrics(
             y_pred_labels,
             average=average,
             zero_division=0,
+        )
+        metrics["fbeta_score"] = fbeta_score(
+            y_true,
+            y_pred_labels,
+            beta=beta,
+            average=average,
         )
         metrics["roc_auc"] = roc_auc_score(y_true, y_pred_probs)
         if average != "binary":
