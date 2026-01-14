@@ -122,7 +122,7 @@ def train_loop(
         # )  # Probably can be removed
 
         val_metrics = calculate_metrics(
-            y_true, y_pred_probs, y_pred_labels, 2.0, "macro"
+            y_true, y_pred_probs, y_pred_labels, 1.5, "macro"
         )
         val_tracker.update(val_metrics)
 
