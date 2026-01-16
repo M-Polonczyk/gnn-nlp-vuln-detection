@@ -3,6 +3,7 @@ import gc
 import multiprocessing as mp
 import sys
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -36,6 +37,14 @@ def init_worker(processor, cwe_to_index, num_classes):
     processor_instance = processor
     cwe_to_index_instance = cwe_to_index
     num_classes_instance = num_classes
+
+
+def load_config() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    config = config_loader.load_all_configs()
+    dataset_config = config["dataset_paths"]
+    training_config = config["training"]
+    model_params = config["model_params"]
+    return dataset_config, training_config, model_params
 
 
 def process_single_sample(sample: CodeSample) -> Data | None:
@@ -105,7 +114,9 @@ def get_graph_for_fitting(sample: CodeSample):
         return None
 
 
-def split_indices_only(samples: list[CodeSample], train_ratio=0.7):
+def split_indices_only(
+    samples: list[CodeSample], train_ratio=0.7, cwe_to_index=None, num_classes=None
+):
     """Wykonuje split tylko na indeksach, oszczędzając pamięć."""
     # 1. Przygotuj macierz etykiet (y) i indeksy próbek (X)
     # Musimy przekazać etykiety jako tablicę numpy
@@ -148,12 +159,11 @@ def save_in_chunks(data_list: list[Data], path_prefix: str, chunk_size=20000):
 
 
 def main() -> None:
-    dataset_config, _, model_params = config_loader.load_all_configs()
+    dataset_config, _, model_params = load_config()
     num_classes = model_params["gcn_multiclass"]["num_classes"]
     cwe_to_index = {
         val["cwe_id"]: val["index"] for val in model_params["vulnerabilities"]
     }
-
     # 1. Load Raw Data (Text only)
     print("Loading dataset...")
     diversevul_loader = DiverseVulDatasetLoader(
@@ -186,7 +196,6 @@ def main() -> None:
         node_dim=model_params["gcn_multiclass"]["hidden_dim"]
     )
     processor.fit(graphs_for_fit)
-    print(f"Processor fitted. Vocab size: {len(processor.node_type_map)}")
 
     del graphs_for_fit
     del subset_samples

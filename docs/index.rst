@@ -3,3 +3,5 @@
 
    Wprowadzenie
    Moduły
+   process_overview
+   scripts
