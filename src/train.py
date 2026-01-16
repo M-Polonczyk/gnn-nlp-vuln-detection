@@ -230,7 +230,7 @@ def main() -> None:
     print("\nEvaluating on test set...")
     y_true, y_pred_probs, y_pred_labels = model.evaluate(test_loader, device)
     calculated_metrics = metrics.calculate_metrics(
-        y_true, y_pred_probs, y_pred_labels, 2, "macro"
+        y_true, y_pred_probs, y_pred_labels, 1.5, "macro"
     )
     acc, prec, rec, f1, roc_auc = (
         calculated_metrics["accuracy"],
@@ -247,22 +247,22 @@ def main() -> None:
     print(f"Test ROC AUC: {roc_auc:.4f}")
 
     # Calculate and log additional metrics
-    print("\nCalculating additional metrics on test set...")
-    metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
+    # print("\nCalculating additional metrics on test set...")
+    # metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
 
-    input_dim = next(iter(train_loader)).x.shape[1]
-    num_nodes = 10
-    x = torch.randn(num_nodes, input_dim).to(device)
-    batch = torch.zeros(num_nodes, dtype=torch.long).to(device)
-    row = torch.arange(num_nodes).repeat(num_nodes)
-    col = torch.arange(num_nodes).unsqueeze(1).repeat(1, num_nodes).flatten()
-    edge_index = torch.stack([row, col], dim=0).to(device)
+    # input_dim = next(iter(train_loader)).x.shape[1]
+    # num_nodes = 10
+    # x = torch.randn(num_nodes, input_dim).to(device)
+    # batch = torch.zeros(num_nodes, dtype=torch.long).to(device)
+    # row = torch.arange(num_nodes).repeat(num_nodes)
+    # col = torch.arange(num_nodes).unsqueeze(1).repeat(1, num_nodes).flatten()
+    # edge_index = torch.stack([row, col], dim=0).to(device)
 
     # For some reason it doesn't work on GPU
-    model.to("cpu")
-    x = x.to("cpu")
-    edge_index = edge_index.to("cpu")
-    batch = batch.to("cpu")
+    # model.to("cpu")
+    # x = x.to("cpu")
+    # edge_index = edge_index.to("cpu")
+    # batch = batch.to("cpu")
 
     # torch._check(edge_index.size(1) > 10, "Edge index size must be greater than 10.")
     # torch._check(batch.max().item() < 100, "Batch indices exceed expected range.")
