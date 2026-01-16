@@ -164,6 +164,7 @@ ignore = [
   "RUF012", # Mutable class attributes should be annotated with `typing.ClassVar`
   "SIM102", # sometimes it's better to nest
   "COM812", # missing trailing comma in a list, dict, set, or tuple
+  "ERA001", # Commented-out code - it's R&D codebase
 ]
 # The fixes in extend-unsafe-fixes will require
 # provide the `--unsafe-fixes` flag when fixing.

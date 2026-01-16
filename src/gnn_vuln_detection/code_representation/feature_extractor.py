@@ -142,7 +142,7 @@ class NodeFeatureExtractor:
         vec[36] = 1.0 if "statement" in nt else 0.0
         vec[37] = 1.0 if "expression" in nt else 0.0
         vec[38] = 1.0 if "call" in nt else 0.0
-
+        print(f"{vec.shape=}, {vec.dtype=}")
         return vec
 
 
