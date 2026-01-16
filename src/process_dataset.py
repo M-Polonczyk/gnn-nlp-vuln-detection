@@ -123,9 +123,9 @@ def main() -> None:
     )
     # seed = 42
     # np.random.seed(seed)
-    # samples = samples[
-    #     : len(samples) // 96
-    # ]  # Use only part of the dataset for faster training
+    samples = samples[
+        : len(samples) // 2
+    ]  # Use only part of the dataset for faster training
     np.random.shuffle(samples)
     converter = DataclassToGraphConverter()
     ast_parser = converter.ast_parser
