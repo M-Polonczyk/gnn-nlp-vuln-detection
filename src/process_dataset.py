@@ -19,19 +19,11 @@ from gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 from gnn_vuln_detection.utils import config_loader
 
 
-def split_indices_only(
-    samples: list[CodeSample], train_ratio=0.7, cwe_to_index=None, num_classes=None
-):
+def split_indices_only(samples: list[CodeSample], train_ratio=0.7):
     """Wykonuje split tylko na indeksach, oszczędzając pamięć."""
     # 1. Przygotuj macierz etykiet (y) i indeksy próbek (X)
     # Musimy przekazać etykiety jako tablicę numpy
-    for i, s in enumerate(tqdm(samples, desc="Building Label Matrix")):
-        label_vec = [0] * num_classes
-        if s.cwe_ids:
-            for cwe in s.cwe_ids:
-                if cwe in cwe_to_index:
-                    label_vec[cwe_to_index[cwe]] = 1
-        samples[i].cwe_ids_labeled = label_vec
+
     labels = np.array([s.cwe_ids_labeled for s in samples])
     indices = np.arange(len(samples)).reshape(-1, 1)  # Indeksy próbek
 
@@ -118,15 +110,21 @@ def main() -> None:
         dataset_path=dataset_config["diversevul"]["dataset_path"],
     )
     samples = diversevul_loader.load_dataset(list(cwe_to_index.keys()))
-    train_idx, val_idx, test_idx = split_indices_only(
-        samples, cwe_to_index=cwe_to_index, num_classes=num_classes
-    )
     # seed = 42
     # np.random.seed(seed)
+    np.random.shuffle(samples)
     samples = samples[
         : len(samples) // 2
     ]  # Use only part of the dataset for faster training
-    np.random.shuffle(samples)
+    for i, s in enumerate(tqdm(samples, desc="Building Label Matrix")):
+        label_vec = [0] * num_classes
+        if s.cwe_ids:
+            for cwe in s.cwe_ids:
+                if cwe in cwe_to_index:
+                    label_vec[cwe_to_index[cwe]] = 1
+        samples[i].cwe_ids_labeled = label_vec
+
+    train_idx, val_idx, test_idx = split_indices_only(samples)
     converter = DataclassToGraphConverter()
     ast_parser = converter.ast_parser
 
