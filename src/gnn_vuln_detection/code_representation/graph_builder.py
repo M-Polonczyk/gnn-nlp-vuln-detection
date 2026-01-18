@@ -22,11 +22,12 @@ class EdgeType(Enum):
     """Types of edges in the graph"""
 
     AST_EDGE = "ast"
+    AST_REVERSE = "ast_reverse"
     CONTROL_FLOW = "control_flow"
     DATA_FLOW = "data_flow"
     CALL = "call"
     RETURN = "return"
-    NEXT_TOKEN = "next_token"
+    NEXT_TOKEN = "next_token"  # noqa: S105
 
 
 class GraphBuilder:
@@ -71,10 +72,12 @@ class GraphBuilder:
     def _build_ast_graph(self, ast_root: Node) -> nx.DiGraph:
         """Build AST graph preserving tree structure"""
         graph = nx.DiGraph()
+        last_leaf_id = None
 
         def traverse_ast(node: Node, parent_id: int | None = None) -> int:
             node_id = self.node_counter
             self.node_counter += 1
+            nonlocal last_leaf_id
 
             # Add node with attributes
             graph.add_node(node_id, **self._extract_node_features(node))
@@ -82,6 +85,18 @@ class GraphBuilder:
             # Add edge from parent if exists
             if parent_id is not None:
                 graph.add_edge(parent_id, node_id, edge_type=EdgeType.AST_EDGE.value)
+                # Reverse node
+                graph.add_edge(node_id, parent_id, edge_type=EdgeType.AST_REVERSE.value)
+
+            if not node.children:
+                if last_leaf_id is not None:
+                    # Add next-token edge from last leaf
+                    graph.add_edge(
+                        last_leaf_id,
+                        node_id,
+                        edge_type=EdgeType.NEXT_TOKEN.value,
+                    )
+                last_leaf_id = node_id
 
             # Recursively process children
             for child in node.children:
