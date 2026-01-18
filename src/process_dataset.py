@@ -114,7 +114,7 @@ def main() -> None:
     # np.random.seed(seed)
     np.random.shuffle(samples)
     samples = samples[
-        : len(samples) // 3
+        : len(samples) // 4
     ]  # Use only part of the dataset for faster training
     for i, s in enumerate(tqdm(samples, desc="Building Label Matrix")):
         label_vec = [0] * num_classes
