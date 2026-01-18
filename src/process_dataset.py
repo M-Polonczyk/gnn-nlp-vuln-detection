@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Emaple usage of loading and analyzing C code samples."""
 
+import gc
 import sys
 from pathlib import Path
 from typing import Any
@@ -88,6 +89,7 @@ def main() -> None:
     """Main function to demonstrate loading and analyzing C code samples."""
 
     def process_partition(indices):
+        nonlocal samples
         partition_samples = [samples[i] for i in indices]
         for i in tqdm(
             range(len(partition_samples)), desc="Converting samples to nx graphs"
@@ -135,7 +137,7 @@ def main() -> None:
     processor = CodeGraphProcessor(
         node_dim=model_params["gcn_multiclass"]["hidden_dim"]
     )
-    processor.fit([sample.graph for sample in train_samples])
+    processor.fit([s.graph for s in train_samples])
 
     # Step 3: Convert samples to PyG Data objects
     def process_to_pyg(sample_list: list[CodeSample], desc="Converting to PyG data"):
@@ -160,17 +162,28 @@ def main() -> None:
         process_to_pyg(train_samples, desc="Processing train samples"),
         "data/processed/train-diversevul-c.pt",
     )
+    # Free memory
+    for i in range(len(train_samples)):
+        train_samples[i].graph = None
     del train_samples  # Free memory
+    del train_idx
+    gc.collect()
 
     test_samples = process_partition(test_idx)
     torch.save(
         process_to_pyg(test_samples, desc="Processing test samples"),
         "data/processed/test-diversevul-c.pt",
     )
-    del test_samples  # Free memory
+    # Free memory
+    for i in range(len(test_samples)):
+        test_samples[i].graph = None
+    del test_samples
+    del test_idx
+    gc.collect()
 
     val_samples = process_partition(val_idx)
     del samples  # Free memory
+    gc.collect()
     torch.save(
         process_to_pyg(val_samples, desc="Processing val samples"),
         "data/processed/val-diversevul-c.pt",
