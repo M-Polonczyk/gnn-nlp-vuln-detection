@@ -116,7 +116,7 @@ def main() -> None:
     # np.random.seed(seed)
     np.random.shuffle(samples)
     samples = samples[
-        : len(samples) // 4
+        : len(samples) // 3
     ]  # Use only part of the dataset for faster training
     for i, s in enumerate(tqdm(samples, desc="Building Label Matrix")):
         label_vec = [0] * num_classes
@@ -160,7 +160,7 @@ def main() -> None:
 
     torch.save(
         process_to_pyg(train_samples, desc="Processing train samples"),
-        "data/processed/train-diversevul-c.pt",
+        "data/processed/train-diversevul-c-large.pt",
     )
     # Free memory
     for i in range(len(train_samples)):
@@ -172,7 +172,7 @@ def main() -> None:
     test_samples = process_partition(test_idx)
     torch.save(
         process_to_pyg(test_samples, desc="Processing test samples"),
-        "data/processed/test-diversevul-c.pt",
+        "data/processed/test-diversevul-c-large.pt",
     )
     # Free memory
     for i in range(len(test_samples)):
@@ -186,7 +186,7 @@ def main() -> None:
     gc.collect()
     torch.save(
         process_to_pyg(val_samples, desc="Processing val samples"),
-        "data/processed/val-diversevul-c.pt",
+        "data/processed/val-diversevul-c-large.pt",
     )
     del val_samples  # Free memory
 
