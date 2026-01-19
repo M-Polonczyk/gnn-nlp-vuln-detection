@@ -101,7 +101,7 @@ def predict_batch(
 
 def load_dataset(dataset_type="test") -> DataLoader:
     data = torch.load(
-        f"data/processed/{dataset_type}-diversevul-small-c.pt", weights_only=False
+        f"data/processed/{dataset_type}-diversevul-c.pt", weights_only=False
     )
     if isinstance(data, DataLoader):
         return data
@@ -125,18 +125,18 @@ def main():
     converter = DataclassToGraphConverter()
     # samples = diversevul_loader.load_dataset([val["cwe_id"] for val in cwes])
     test_samples = load_dataset()
-    val_samples = load_dataset("val")
+    # val_samples = load_dataset("val")
     # predict_batch(samples, cwes, index_to_cwe, device=device)
 
     model = load_model(input_dim=test_samples.dataset[0].x.shape[1], device=device)
-    model.label_threshold = THRESHOLD
-    y_true, y_pred_probs, y_pred_labels = model.evaluate(val_samples, device)
     thresholds = [
         float(t)
         for t in file_loader.load_file("checkpoints/optimal_thresholds.csv").split(",")
     ]
+    model.label_threshold = thresholds
+    # y_true, y_pred_probs, y_pred_labels = model.evaluate(val_samples, device)
     y_true, y_pred_probs, y_pred_labels = model.evaluate(test_samples, device)
-    y_pred_labels = (y_pred_probs >= thresholds).astype(int)
+    # y_pred_labels = (y_pred_probs >= thresholds).astype(int)
     logging.info("y_true: %s", y_true)
     logging.info("y_probs: %s", y_pred_probs)
     logging.info("y_labels: %s", y_pred_labels)
