@@ -141,7 +141,7 @@ def main():
     logging.info("y_probs: %s", y_pred_probs)
     logging.info("y_labels: %s", y_pred_labels)
     calculated_metrics = metrics.calculate_metrics(
-        y_true, y_pred_probs, y_pred_labels, 1.5, "macro"
+        y_true, y_pred_probs, y_pred_labels, 2, "macro"
     )
     logging.info("Calculated metrics: %s", calculated_metrics)
 
