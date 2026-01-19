@@ -144,6 +144,7 @@ def main():
         y_true, y_pred_probs, y_pred_labels, 2, "macro"
     )
     logging.info("Calculated metrics: %s", calculated_metrics)
+    metrics.save_metrics_to_csv(calculated_metrics, "checkpoints/metrics.csv")
 
     for i in range(num_classes):
         class_cwe = index_to_cwe[i]

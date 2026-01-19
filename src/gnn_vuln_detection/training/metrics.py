@@ -249,3 +249,15 @@ def plot_confusion_matrix(
     plt.close()
 
     df_perf.to_csv(Path(save_dir) / "cwe_metrics.csv", index=False)
+
+
+def save_metrics_to_csv(metrics: dict, filepath: str) -> None:
+    """
+    Saves the calculated metrics to a CSV file.
+
+    Args:
+        metrics (dict): A dictionary containing metric names and their values.
+        filepath (str): The path to the CSV file where metrics will be saved.
+    """
+    df = pd.DataFrame([metrics])
+    df.to_csv(filepath, index=False)
