@@ -41,6 +41,17 @@ dependencies = [
   "tree-sitter-java>=0.23.5",
 ]
 
+[project.urls]
+Homepage = "https://github.com/M-Polonczyk/gnn-nlp-vuln-detection"
+Repository = "https://github.com/M-Polonczyk/gnn-nlp-vuln-detection"
+
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "6.0"

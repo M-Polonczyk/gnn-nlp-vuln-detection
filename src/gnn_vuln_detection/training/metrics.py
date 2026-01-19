@@ -133,6 +133,7 @@ def calculate_metrics(
         y_pred_labels (np.array): Predicted class labels.
         average (str): Averaging method for precision, recall, f1-score (e.g., 'binary', 'macro', 'weighted').
                        Use 'binary' for binary classification, 'macro' or 'weighted' for multi-class.
+        beta (float): Beta value for F-beta score calculation.
 
     Returns:
         dict: A dictionary containing calculated metrics.

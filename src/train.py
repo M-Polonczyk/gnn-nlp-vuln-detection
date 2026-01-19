@@ -247,8 +247,9 @@ def main() -> None:
     print(f"Test ROC AUC: {roc_auc:.4f}")
 
     # Calculate and log additional metrics
-    # print("\nCalculating additional metrics on test set...")
-    # metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
+    print("\nCalculating additional metrics on test set...")
+    metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
+    metrics.save_metrics_to_csv(calculated_metrics, "checkpoints/metrics.csv")
 
     # input_dim = next(iter(train_loader)).x.shape[1]
     # num_nodes = 10
