@@ -174,9 +174,9 @@ def main() -> None:
     # del test_samples
     # del val_samples
 
-    train = torch.load("data/processed/train-diversevul-small-c.pt", weights_only=False)
-    val = torch.load("data/processed/val-diversevul-small-c.pt", weights_only=False)
-    test = torch.load("data/processed/test-diversevul-small-c.pt", weights_only=False)
+    train = torch.load("data/processed/train-diversevul-c.pt", weights_only=False)
+    val = torch.load("data/processed/val-diversevul-c.pt", weights_only=False)
+    test = torch.load("data/processed/test-diversevul-c.pt", weights_only=False)
 
     # Create DataLoader objects
     train_loader = DataLoader(
