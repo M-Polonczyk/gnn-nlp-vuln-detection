@@ -152,14 +152,14 @@ def main():
         class_f1 = f1_score(class_true, class_preds)
         logging.info("F1 score for CWE %s (index %d): %.4f", class_cwe, i, class_f1)
 
-    for y_t, pred in zip(y_true, y_pred_labels, strict=False):
-        cwes_predicted = [val["cwe_id"] for val in cwes if pred[val["index"]] == 1]
-        if cwes_predicted:
-            logging.info("Predicted CWEs: %s", ", ".join(cwes_predicted))
-            logging.info(
-                "Actual CWEs: %s",
-                ", ".join([index_to_cwe[i] for i, v in enumerate(y_t) if v == 1]),
-            )
+    # for y_t, pred in zip(y_true, y_pred_labels, strict=False):
+    #     cwes_predicted = [val["cwe_id"] for val in cwes if pred[val["index"]] == 1]
+    #     if cwes_predicted:
+    #         logging.info("Predicted CWEs: %s", ", ".join(cwes_predicted))
+    #         logging.info(
+    #             "Actual CWEs: %s",
+    #             ", ".join([index_to_cwe[i] for i, v in enumerate(y_t) if v == 1]),
+    #         )
 
     metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
 
