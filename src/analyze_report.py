@@ -20,8 +20,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("MetricsAnalyzer")
 
-REPORT_JSON_FILE = Path("output.json")
-PLOTS_DIR = Path("plots_comparison")
+PLOTS_DIR = Path("comparison/plots")
+REPORT_JSON_FILE = Path("comparison/output.json")
 
 
 def ensure_list(x):
