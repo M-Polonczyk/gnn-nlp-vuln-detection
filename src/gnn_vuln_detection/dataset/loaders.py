@@ -6,14 +6,13 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from torch_geometric.data import Data
-
 from gnn_vuln_detection.code_representation.code_representation import (
     CodeMetadata,
     CodeSample,
 )
 from gnn_vuln_detection.utils.file_loader import load_json
 from gnn_vuln_detection.utils.utils import parse_git_url, save_json
+from torch_geometric.data import Data
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +46,11 @@ class DatasetLoader:
         if (current_idx + 1) % 100 == 0 or current_idx == total_samples - 1:
             success_rate = successful_graphs / (current_idx + 1) * 100
             logger.info(
-                f"Processed {current_idx + 1}/{total_samples} samples, "
-                f"created {successful_graphs} graphs (success rate: {success_rate:.1f}%)",
+                "Processed %d/%d samples, created %d graphs (success rate: %.1f%%)",
+                current_idx + 1,
+                total_samples,
+                successful_graphs,
+                success_rate,
             )
 
     def _validate_pyg_data(self, data: Data) -> bool:
@@ -78,9 +80,10 @@ class DatasetLoader:
                     # Edge index out of bounds
                     return False
 
-            return True
         except Exception:
             return False
+        else:
+            return True
 
     def save_processed_dataset(
         self,
@@ -156,7 +159,7 @@ class MegaVulDatasetLoader(DatasetLoader):
         Returns:
             List of CodeSample objects
         """
-        logger.info(f"Loading dataset from {self.dataset_path}")
+        logger.info("Loading dataset from %s", self.dataset_path)
 
         raw_data = load_json(self.dataset_path)
 
@@ -165,7 +168,9 @@ class MegaVulDatasetLoader(DatasetLoader):
 
         for i, item in enumerate(raw_data):
             if not isinstance(item, dict):
-                logger.warning(f"Skipping non-dictionary item at index {i} in dataset.")
+                logger.warning(
+                    "Skipping non-dictionary item at index %d in dataset.", i
+                )
                 skipped_samples_count += 1
                 continue
             try:
@@ -175,7 +180,9 @@ class MegaVulDatasetLoader(DatasetLoader):
                     project, commit_id = parse_git_url(git_url)
                 elif git_url is not None:
                     logger.warning(
-                        f"git_url for item {i} is not a string: {git_url}. Cannot parse project/commit.",
+                        "git_url for item %d is not a string: %s. Cannot parse project/commit.",
+                        i,
+                        git_url,
                     )
 
                 # func_before should only be populated if is_vul is True and func_before exists
@@ -201,14 +208,18 @@ class MegaVulDatasetLoader(DatasetLoader):
 
             except (KeyError, ValueError) as e:
                 logger.warning(
-                    f"Skipping sample at index {i} due to error: {e}. Item snapshot: {str(item)[:200]}gnn_vuln_detection..",
+                    "Skipping sample at index %d due to error: %s. Item snapshot: %s..",
+                    i,
+                    e,
+                    str(item)[:200],
                 )
                 skipped_samples_count += 1
                 continue
-            except Exception as e:
-                logger.error(
-                    f"Unexpected error processing sample at index {i}: {e}. Item snapshot: {str(item)[:200]}gnn_vuln_detection..",
-                    exc_info=True,
+            except Exception:
+                logger.exception(
+                    "Unexpected error processing sample at index %d. Item snapshot: %s..",
+                    i,
+                    str(item)[:200],
                 )
                 skipped_samples_count += 1
                 continue
@@ -254,10 +265,10 @@ class DiverseVulDatasetLoader(DatasetLoader):
                 if labels and (cwes and not (set(cwes) & set(labels))):
                     continue
                 sample = CodeSample(
+                    id=item.get("hash", ""),
                     label=1 if cwes else 0,
                     code=item["func"],
                     cwe_ids=cwes,
-                    id=item.get("hash", ""),
                     metadata=CodeMetadata(
                         project=item.get("project", ""),
                         commit_id=item.get("commit_id", ""),
@@ -268,14 +279,18 @@ class DiverseVulDatasetLoader(DatasetLoader):
 
             except (KeyError, ValueError) as e:
                 logger.warning(
-                    f"Skipping sample at index {i} due to error: {e}. Item snapshot: {str(item)[:200]}gnn_vuln_detection..",
+                    "Skipping sample at index %d due to error: %s. Item snapshot: %s..",
+                    i,
+                    e,
+                    str(item)[:200],
                 )
                 skipped_samples_count += 1
                 continue
-            except Exception as e:
-                logger.error(
-                    f"Unexpected error processing sample at index {i}: {e}. Item snapshot: {str(item)[:200]}gnn_vuln_detection..",
-                    exc_info=True,
+            except Exception:
+                logger.exception(
+                    "Unexpected error processing sample at index %d. Item snapshot: %s..",
+                    i,
+                    str(item)[:200],
                 )
                 skipped_samples_count += 1
                 continue
@@ -322,7 +337,7 @@ class DiverseVulDatasetLoader(DatasetLoader):
         #         logger.warning(f"Skipping metadata entry due to missing key: {e}")
         #         continue
 
-        logger.info(f"Loaded metadata for {len(self.metadata)} DiverseVul entries")
+        logger.info("Loaded metadata for %d DiverseVul entries", len(self.metadata))
         return self.metadata
 
 

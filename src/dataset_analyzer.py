@@ -4,6 +4,7 @@
 import sys
 from collections import Counter
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -161,8 +162,29 @@ def analyze_dataset_labels(loader, cwe_mapping):
     plt.ylabel("Liczba próbek")
     plt.tight_layout()
     plt.show()
+    plt.clf()
 
     return df_stats, label_density
+
+
+def get_dataset_projects(samples: list[CodeSample]) -> dict[str, dict[str, Any]]:
+    """Zwraca słownik z projektami i liczbą próbek w każdym z nich."""
+    projects = {}
+    for sample in samples:
+        if sample.metadata.project not in projects:
+            projects[sample.metadata.project] = {
+                "count": 0,
+                "vuln_count": 0,
+                "CWEs": set(),
+                "repo_url": "",
+            }
+        projects[sample.metadata.project]["CWEs"].update(sample.cwe_ids)
+        projects[sample.metadata.project]["count"] += 1
+
+        if sample.cwe_ids != [] and sample.cwe_ids is not None:
+            projects[sample.metadata.project]["vuln_count"] += 1
+        projects[sample.metadata.project]["repo_url"] = sample.metadata.repo_url
+    return projects
 
 
 def main():
@@ -176,10 +198,10 @@ def main():
     cwe_to_index = {val["cwe_id"]: val["index"] for val in cwes}
     index_to_cwe = {v: k for k, v in cwe_to_index.items()}
 
-    train_loader = torch.load(
-        "data/processed/test-diversevul-small-c.pt",
-        weights_only=False,
-    )
+    # train_loader = torch.load(
+    #     "data/processed/test-diversevul-small-c.pt",
+    #     weights_only=False,
+    # )
     # analyze_dataset_labels(train_loader, index_to_cwe)
 
     diversevul_loader = DiverseVulDatasetLoader(
@@ -196,7 +218,42 @@ def main():
                 if cwe in cwe_to_index:
                     label_vec[cwe_to_index[cwe]] = 1
         sample.cwe_ids_labeled = label_vec
-    df_results = analyze_codesamples_distribution(samples, index_to_cwe)
+    # df_results = analyze_codesamples_distribution(samples, index_to_cwe)
+    projects = get_dataset_projects(samples)
+    for project, info in projects.items():
+        print(
+            f"Project: {project}, Samples: {info['count']}, CWEs: {info['CWEs']}, Repo URL: {info['repo_url']}"
+        )
+    print(
+        "Total projects:",
+        len(projects),
+        "Total samples:",
+        len(samples),
+        "Total Vulnerable Samples:",
+        sum([info["vuln_count"] for info in projects.values()]),
+    )
+    print(
+        f"3 biggest projects by number of samples: {sorted(projects.items(), key=lambda x: x[1]['count'], reverse=True)[:3]}"
+    )
+    plt.figure(figsize=(14, 7))
+    project_names = list(projects.keys())
+    project_counts = [info["count"] for info in projects.values()]
+    bars = plt.bar(
+        project_names,
+        project_counts,
+        color="royalblue",
+        edgecolor="black",
+        alpha=0.8,
+    )
+    plt.bar_label(bars, padding=3, fontsize=10, fontweight="bold")
+    plt.title(f"Liczba próbek na projekt (N={len(samples)})", fontsize=14)
+    plt.ylabel("Liczba próbek", fontsize=12)
+    plt.xlabel("Projekt", fontsize=12)
+    plt.xticks(rotation=45, ha="right")
+    plt.grid(axis="y", linestyle="--", alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+    plt.clf()
 
 
 if __name__ == "__main__":

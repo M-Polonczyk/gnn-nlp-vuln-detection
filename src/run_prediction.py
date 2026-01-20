@@ -100,9 +100,10 @@ def predict_batch(
 
 
 def load_dataset(dataset_type="test") -> DataLoader:
-    data = torch.load(
-        f"data/processed/{dataset_type}-diversevul-c.pt", weights_only=False
-    )
+    data = torch.load("data/processed/diversevul_code_samples.pt", weights_only=False)
+    # data = torch.load(
+    #     f"data/processed/{dataset_type}-diversevul-c.pt", weights_only=False
+    # )
     if isinstance(data, DataLoader):
         return data
     return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
@@ -133,13 +134,14 @@ def main():
         float(t)
         for t in file_loader.load_file("checkpoints/optimal_thresholds.csv").split(",")
     ]
-    model.label_threshold = thresholds
+    model.label_threshold = 0.5
     # y_true, y_pred_probs, y_pred_labels = model.evaluate(val_samples, device)
     y_true, y_pred_probs, y_pred_labels = model.evaluate(test_samples, device)
     # y_pred_labels = (y_pred_probs >= thresholds).astype(int)
     logging.info("y_true: %s", y_true)
     logging.info("y_probs: %s", y_pred_probs)
     logging.info("y_labels: %s", y_pred_labels)
+    logging.info("Beta: %s", 1.5)
     calculated_metrics = metrics.calculate_metrics(
         y_true, y_pred_probs, y_pred_labels, 1.5, "macro"
     )

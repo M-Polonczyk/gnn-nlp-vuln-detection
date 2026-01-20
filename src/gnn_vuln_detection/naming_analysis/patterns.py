@@ -28,7 +28,7 @@ BAD_NAMES = {
 }
 
 
-def identify_naming_convention(name: str):
+def identify_naming_convention(name: str) -> str:
     for style, regex in NAMING_PATTERNS.items():
         if regex.match(name):
             return style

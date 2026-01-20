@@ -4,10 +4,10 @@ import logging
 from typing import Literal
 
 import torch
-from torch_geometric.loader import DataLoader
-
 from gnn_vuln_detection.models.factory import create_vulnerability_detector
 from gnn_vuln_detection.utils import config_loader
+from torch_geometric.loader import DataLoader
+
 from src.gnn_vuln_detection.utils.utils import compute_pos_weight
 
 from . import losses, metrics

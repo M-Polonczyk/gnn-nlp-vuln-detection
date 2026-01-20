@@ -127,7 +127,7 @@ def train_loop(
         val_tracker.update(val_metrics)
 
         # Learning rate scheduling
-        current_fbeta = val_metrics["fbeta_score"]  # TODO
+        current_fbeta = val_metrics["fbeta_score"]
         scheduler.step(current_fbeta)
 
         # Save best model based on validation F1-score

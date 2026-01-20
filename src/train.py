@@ -9,14 +9,10 @@ import numpy as np
 import torch
 from sklearn.metrics import f1_score
 from skmultilearn.model_selection import iterative_train_test_split
-from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
-from tqdm import tqdm
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from gnn_vuln_detection.code_representation.code_representation import CodeSample
-from gnn_vuln_detection.code_representation.feature_extractor import CodeGraphProcessor
-from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
 from gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 from gnn_vuln_detection.training import metrics, train_cwe_classifier
 from gnn_vuln_detection.utils import config_loader

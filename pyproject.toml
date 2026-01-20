@@ -17,12 +17,9 @@ dependencies = [
   "numpy>=2.3.3",
   "onnxscript>=0.4.0",
   "pandas>=2.3.2",
-  "pytest>=8.4.2",
-  "pytest-cov>=7.0.0",
   "pyvis>=0.3.2",
   "pyyaml>=6.0.2",
   "requests<2.32",
-  "ruff>=0.13.0",
   "scikit-learn>=1.7.2",
   "scikit-multilearn>=0.2.0",
   "seaborn>=0.13.2",
@@ -52,10 +49,13 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.pyright]
+include = ["src"]
+
 # ==== pytest ====
 [tool.pytest.ini_options]
 minversion = "6.0"
-testpaths = ["src/tests"]
+testpaths = ["tests"]
 addopts = [
   "-v",
   "--tb=short",
@@ -111,6 +111,7 @@ ignore_missing_imports = true
 
 # ==== ruff ====
 [tool.ruff]
+src = ["gnn_vuln_detection", "tests"]
 target-version = "py312"
 
 [tool.ruff.lint]
@@ -176,10 +177,17 @@ ignore = [
   "SIM102", # sometimes it's better to nest
   "COM812", # missing trailing comma in a list, dict, set, or tuple
   "ERA001", # Commented-out code - it's R&D codebase
+  "N812",   # Lowercase  imported as non-lowercase
 ]
 # The fixes in extend-unsafe-fixes will require
 # provide the `--unsafe-fixes` flag when fixing.
 extend-unsafe-fixes = ["UP038"]
 
 [dependency-groups]
-dev = ["coverage>=7.10.6", "mypy>=1.17.1", "pytest>=8.4.2", "ruff>=0.13.0"]
+dev = [
+    "coverage>=7.10.6",
+    "mypy>=1.17.1",
+    "pytest>=8.4.2",
+    "python-dotenv>=1.2.1",
+    "ruff>=0.13.0",
+]

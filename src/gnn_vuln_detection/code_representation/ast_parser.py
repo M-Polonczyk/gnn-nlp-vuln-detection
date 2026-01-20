@@ -62,13 +62,20 @@ class ASTParser:
         #     return tree
         return tree.root_node
 
-    def print_ast(self, node: Node, indent="") -> None:
+    def print_ast(self, node: Node, indent: str = "") -> None:
         """Helper function to print the AST structure (for debugging purposes)."""
-        print(
-            f"{indent}{node.type} [{node.start_point} - {node.end_point}] '{node.text.decode('utf8')}'",
+        print(  # noqa: T201
+            f"{indent}{node.type} [{node.start_point} - {node.end_point}] \
+                '{node.text.decode('utf8') if node.text else ''}'",
         )
         for child in node.children:
             self.print_ast(child, indent + "  ")
+
+    def ast_to_code(self, node: Node, source_bytes: bytes) -> str:
+        """
+        Reconstruct source code for a node using original source bytes.
+        """
+        return source_bytes[node.start_byte : node.end_byte].decode("utf8")
 
     def remove_comments_from_node(self, node: Node) -> Node | None:
         """

@@ -96,3 +96,7 @@ class VulnerabilityGAT(BaseGNN):
 
         # Classification
         return self.classifier(x)
+
+
+class MultilabelGAT(BaseGNN):
+    """Graph Attention Network for multi-label vulnerability detection"""

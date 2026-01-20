@@ -15,16 +15,15 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 import torch
-from torch_geometric.data import Data
-from torch_geometric.utils.convert import from_networkx
-from tree_sitter import Node
-
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
 from gnn_vuln_detection.code_representation.code_representation import CodeSample
 from gnn_vuln_detection.code_representation.feature_extractor import (
     CodeGraphProcessor,
 )
 from gnn_vuln_detection.code_representation.graph_builder import GraphBuilder, GraphType
+from torch_geometric.data import Data
+from torch_geometric.utils.convert import from_networkx
+from tree_sitter import Node
 
 
 class ASTToGraphConverter:

@@ -27,11 +27,11 @@ class BaseGNN(nn.Module):
         # Tutaj zdefiniujesz warstwy, które będą wspólne lub nadpisane
         # przez konkretne implementacje GNN
 
-    def _eval_function(self, logits):
+    def _eval_function(self, logits) -> tuple[torch.Tensor, torch.Tensor]:
         return F.softmax(logits, dim=1), torch.argmax(logits, dim=1)
 
     @abc.abstractmethod
-    def forward(self, data) -> None:
+    def forward(self, data) -> nn.Sequential:
         # Data to zazwyczaj obiekt PyTorch Geometric Data lub Batch
         # zawierający x (cechy węzłów), edge_index (indeksy krawędzi),
         # edge_attr (cechy krawędzi), batch (indeksy batcha dla węzłów)

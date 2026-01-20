@@ -1,3 +1,5 @@
+"""NOT IMPLEMENTED YET"""
+
 import os
 from collections.abc import Sequence
 from pathlib import Path
@@ -5,15 +7,14 @@ from pathlib import Path
 import networkx as nx
 import numpy as np
 import torch
-from torch_geometric.data import Data, Dataset, download_url
-from torch_geometric.utils import from_networkx
-
 from gnn_vuln_detection.code_representation.code_representation import CodeSample
 from gnn_vuln_detection.code_representation.graph_builder import GraphType
 from gnn_vuln_detection.data_processing.graph_converter import (
     ASTToGraphConverter,
     DataclassToGraphConverter,
 )
+from torch_geometric.data import Data, Dataset, download_url
+from torch_geometric.utils import from_networkx
 
 
 class VulnerabilityDataset(Dataset):

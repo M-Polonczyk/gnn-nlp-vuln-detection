@@ -1,3 +1,7 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from gnn_vuln_detection.nlp_integration.api_patterns import APIPatternLearner
 from gnn_vuln_detection.nlp_integration.code_complexity_analyzer import (
     CodeComplexityAnalyzer,

@@ -1,3 +1,5 @@
+from typing import Literal
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -13,17 +15,17 @@ from .base import BaseGNN
 
 
 class VulnerabilityGCN(BaseGNN):
-    """Enhanced GCN for vulnerability detection with better architecture"""
+    """GCN for binary vulnerability classification"""
 
     def __init__(
         self,
-        input_dim,
-        hidden_dim=128,
-        num_classes=2,
-        num_layers=3,
-        dropout_rate=0.3,
-        use_batch_norm=True,
-        pool_type="mean",
+        input_dim: int,
+        hidden_dim: int = 128,
+        num_classes: int = 2,
+        num_layers: int = 3,
+        dropout_rate: float = 0.3,
+        use_batch_norm: bool = True,
+        pool_type: Literal["mean", "max", "add", "combined"] = "mean",
     ) -> None:
         super().__init__(
             input_dim,
@@ -139,13 +141,13 @@ class VulnerabilityGCN(BaseGNN):
 class MultilabelGCN(BaseGNN):
     def __init__(
         self,
-        input_dim,
-        hidden_dim=128,
-        num_classes=9,
-        num_layers=3,
-        dropout_rate=0.3,
-        use_batch_norm=True,
-        pool_type="mean",
+        input_dim: int,
+        hidden_dim: int = 128,
+        num_classes: int = 9,
+        num_layers: int = 3,
+        dropout_rate: float = 0.3,
+        use_batch_norm: bool = True,
+        pool_type: Literal["mean", "max", "add", "combined"] = "mean",
     ):
         super().__init__(input_dim, hidden_dim, num_classes, num_layers, dropout_rate)
         self.hidden_dim = hidden_dim
@@ -153,7 +155,7 @@ class MultilabelGCN(BaseGNN):
         self.use_batch_norm = use_batch_norm
         self.pool_type = pool_type
         self.label_threshold: float | list[float] = (
-            0.5  # Threshold for multi-label classification
+            0.5  # Base threshold for multi-label classification
         )
 
         # GCN layers
@@ -193,7 +195,7 @@ class MultilabelGCN(BaseGNN):
         threshold = torch.tensor(self.label_threshold, device=probs.device)
         return probs, (probs >= threshold).float()
 
-    def forward(self, x, edge_index, batch):
+    def forward(self, x, edge_index, batch) -> nn.Sequential:
         if self.use_batch_norm and len(self.batch_norms) > 0:
             for conv, bn in zip(self.convs, self.batch_norms, strict=False):
                 x = conv(x=x, edge_index=edge_index)
@@ -222,75 +224,5 @@ class MultilabelGCN(BaseGNN):
             x_mean = global_mean_pool(x, batch)
             x_max = global_max_pool(x, batch)
             x = torch.cat([x_mean, x_max], dim=1)
-
-        return self.classifier(x)
-
-
-# TODO: Check and replace some logic
-class TODOMultilabelGCN(BaseGNN):
-    def __init__(
-        self,
-        input_dim,
-        hidden_dim=128,
-        num_classes=9,
-        num_layers=3,
-        dropout_rate=0.3,
-        use_batch_norm=True,
-        pool_type="mean",
-    ):
-        super().__init__(input_dim, hidden_dim, num_classes, num_layers, dropout_rate)
-
-        self.use_batch_norm = use_batch_norm
-        self.pool_type = pool_type
-        self.label_threshold = 0.5
-
-        # convolution layers
-        self.convs = nn.ModuleList()
-        self.norms = nn.ModuleList()
-
-        # first layer
-        self.convs.append(GCNConv(input_dim, hidden_dim))
-        if use_batch_norm:
-            self.norms.append(nn.BatchNorm1d(hidden_dim))
-
-        # hidden layers
-        for _ in range(num_layers - 1):
-            self.convs.append(GCNConv(hidden_dim, hidden_dim))
-            if use_batch_norm:
-                self.norms.append(nn.BatchNorm1d(hidden_dim))
-
-        # classifier
-        pooled_dim = hidden_dim * 2 if pool_type == "combined" else hidden_dim
-        self.classifier = nn.Sequential(
-            nn.Linear(pooled_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Dropout(dropout_rate),
-            nn.Linear(hidden_dim, num_classes),
-        )
-
-    def _eval_function(self, logits):
-        probs = torch.sigmoid(logits)
-        labels = (probs >= self.label_threshold).float()
-        return probs, labels
-
-    def forward(self, x, edge_index, batch):
-        for i, conv in enumerate(self.convs):
-            x = conv(x, edge_index)
-            if self.use_batch_norm:
-                x = self.norms[i](x)
-            x = F.relu(x)
-            x = F.dropout(x, p=self.dropout_rate, training=self.training)
-
-        if self.pool_type == "mean":
-            x = global_mean_pool(x, batch)
-        elif self.pool_type == "max":
-            x = global_max_pool(x, batch)
-        elif self.pool_type == "add":
-            x = global_add_pool(x, batch)
-        else:  # combined
-            x = torch.cat(
-                [global_mean_pool(x, batch), global_max_pool(x, batch)],
-                dim=1,
-            )
 
         return self.classifier(x)

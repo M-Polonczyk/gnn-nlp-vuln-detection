@@ -1,24 +1,53 @@
 import logging
+import sys
+from pathlib import Path
 from typing import Literal
 
 import torch
+from sklearn.metrics import f1_score
 from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 
-from gnn_vuln_detection.code_representation.code_representation import CodeSample
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from gnn_vuln_detection.data_processing.graph_converter import (
     DataclassToGraphConverter,
 )
+from gnn_vuln_detection.dataset import DiverseVulDatasetLoader
 from gnn_vuln_detection.dataset.loaders import DiverseVulDatasetLoader
 from gnn_vuln_detection.models.factory import (
     GNNModelFactory,
 )
-from gnn_vuln_detection.utils import config_loader
+from gnn_vuln_detection.training import metrics
+from gnn_vuln_detection.utils import config_loader, file_loader
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+)
+THRESHOLD = 0.6
+MODEL_PATH = "checkpoints/cwe_detector.pth"
 
 type Device = Literal["cpu", "cuda"]
-PREDICTION_THRESHOLD = 0.5
 
 
-def predict(batch_graph: Data, device: Device = "cpu") -> torch.Tensor:
+def load_model(input_dim, device):
+    model_params = config_loader.load_config("model_params.yaml")["gcn_multiclass"]
+    model_params.pop("model_type", None)
+
+    model = GNNModelFactory.create_model(
+        model_type="gcn",
+        input_dim=input_dim or model_params["input_dim"],  # or infer once
+        num_classes=model_params["num_classes"],
+        config=model_params,
+    )
+
+    model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
+    model.to(device)
+    model.eval()
+    return model
+
+
+def predict(batch_graph: Data, device="cpu") -> torch.Tensor:
     model_params = config_loader.load_config("model_params.yaml")["gcn_multiclass"]
     input_dim = batch_graph.x.shape[1]
 
@@ -30,9 +59,8 @@ def predict(batch_graph: Data, device: Device = "cpu") -> torch.Tensor:
         num_classes=model_params["num_classes"],
         config=model_params,
     )
-    model.load_state_dict(torch.load("checkpoints/cwe_detector.pth"))
+    model.load_state_dict(torch.load(MODEL_PATH))
     model.to(device)
-
     y_true, y_probs, y_labels = model.evaluate([batch_graph], device)
     logging.info("y_true: %s", y_true)
     logging.info("y_probs: %s", y_probs)
@@ -42,60 +70,105 @@ def predict(batch_graph: Data, device: Device = "cpu") -> torch.Tensor:
         return model(batch_graph.x, batch_graph.edge_index, batch_graph.batch)
 
 
-def convert_to_batch_graphs(
-    samples: list[CodeSample],
-    num_classes: int,
-    cwe_to_index: dict,
-) -> list[Data]:
-    converter = DataclassToGraphConverter()
-    graphs = []
-    for sample in samples:
-        label_vec = [0] * num_classes
-        if sample.cwe_ids:
-            for cwe in sample.cwe_ids:
-                if cwe in cwe_to_index:
-                    label_vec[cwe_to_index[cwe]] = 1
-        sample.cwe_ids_labeled = label_vec
-        graphs.append(converter.code_sample_to_pyg_data(sample))
-    return graphs
+def predict_batch(
+    batch_graphs: list[Data] | DataLoader, cwes, index_to_cwe, device="cpu"
+) -> None:
+    for batch_graph in batch_graphs:
+        output = predict(batch_graph, device)
+
+        probs_all = torch.sigmoid(output)
+
+        for i in range(probs_all.shape[0]):
+            probs = probs_all[i]
+            preds = (probs > THRESHOLD).int()
+
+            print("Probabilities:", probs)
+            print("Predicted CWE labels:", preds)
+            print(
+                "True CWE labels:",
+                batch_graph.y[i]
+                if isinstance(batch_graph.y, torch.Tensor)
+                else batch_graph.y,
+            )
+            cwes_predicted = [val["cwe_id"] for val in cwes if preds[val["index"]] == 1]
+            if cwes_predicted:
+                print("Predicted CWEs:")
+                print(", ".join(cwes_predicted))
+
+            best_idx = probs.argmax().item()
+            best_prob = probs[int(best_idx)].item()
+            best_cwe = index_to_cwe[best_idx]
+            print("Best prediction:")
+            print(f"\tCWE: {best_cwe}")
+            print(f"\tindex: {best_idx}")
+            print(f"\tprobability: {best_prob:.4f}")
+        exit()
 
 
-def run(code_samples: list[CodeSample], cwes: list[dict]) -> None:
+def load_dataset(dataset_type="test") -> DataLoader:
+    data = torch.load(
+        f"data/processed/{dataset_type}-diversevul-c.pt", weights_only=False
+    )
+    if isinstance(data, DataLoader):
+        return data
+    return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
+
+
+def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    dataset_config = config_loader.load_config("dataset_paths.yaml")
     model_params = config_loader.load_config("model_params.yaml")["gcn_multiclass"]
+    cwes = config_loader.load_config("model_params.yaml")["vulnerabilities"]
 
     num_classes = model_params["num_classes"]
     cwe_to_index = {val["cwe_id"]: val["index"] for val in cwes}
     index_to_cwe = {v: k for k, v in cwe_to_index.items()}
 
-    samples = convert_to_batch_graphs(code_samples, num_classes, cwe_to_index)
-    for i in range(10):
-        batch_graph = samples[i].to(device)
-        outputs = predict(batch_graph, device=device)
-        predicted_probs = torch.sigmoid(outputs).cpu().numpy()[0]
-        predicted_indices = [
-            idx
-            for idx, prob in enumerate(predicted_probs)
-            if prob >= PREDICTION_THRESHOLD
-        ]
-        predicted_cwes = [index_to_cwe[idx] for idx in predicted_indices]
-
-        logging.info("Code sample")
-        logging.info("True CWEs: %s", code_samples[i].cwe_ids)
-        logging.info("Predicted CWEs: %s", predicted_cwes)
-        logging.info("Predicted probabilities: %s\n", predicted_probs)
-
-
-def main():
-    code_samples = []
-
-    dataset_config = config_loader.load_config("dataset_paths.yaml")
-    cwes = config_loader.load_config("model_params.yaml")["vulnerabilities"]
     diversevul_loader = DiverseVulDatasetLoader(
         dataset_path=dataset_config["diversevul"]["dataset_path"],
     )
-    code_samples = diversevul_loader.load_dataset([val["cwe_id"] for val in cwes])
-    run(code_samples, cwes)
+    converter = DataclassToGraphConverter()
+    # samples = diversevul_loader.load_dataset([val["cwe_id"] for val in cwes])
+    test_samples = load_dataset()
+    # val_samples = load_dataset("val")
+    # predict_batch(samples, cwes, index_to_cwe, device=device)
+
+    model = load_model(input_dim=test_samples.dataset[0].x.shape[1], device=device)
+    thresholds = [
+        float(t)
+        for t in file_loader.load_file("checkpoints/optimal_thresholds.csv").split(",")
+    ]
+    model.label_threshold = thresholds
+    # y_true, y_pred_probs, y_pred_labels = model.evaluate(val_samples, device)
+    y_true, y_pred_probs, y_pred_labels = model.evaluate(test_samples, device)
+    # y_pred_labels = (y_pred_probs >= thresholds).astype(int)
+    logging.info("y_true: %s", y_true)
+    logging.info("y_probs: %s", y_pred_probs)
+    logging.info("y_labels: %s", y_pred_labels)
+    calculated_metrics = metrics.calculate_metrics(
+        y_true, y_pred_probs, y_pred_labels, 1.5, "macro"
+    )
+    logging.info("Calculated metrics: %s", calculated_metrics)
+    metrics.save_metrics_to_csv(calculated_metrics, "checkpoints/metrics.csv")
+
+    for i in range(num_classes):
+        class_cwe = index_to_cwe[i]
+        class_true = [y_true[j][i] for j in range(len(y_true))]
+        class_preds = [y_pred_labels[j][i] for j in range(len(y_pred_labels))]
+        class_f1 = f1_score(class_true, class_preds)
+        logging.info("F1 score for CWE %s (index %d): %.4f", class_cwe, i, class_f1)
+
+    # for y_t, pred in zip(y_true, y_pred_labels, strict=False):
+    #     cwes_predicted = [val["cwe_id"] for val in cwes if pred[val["index"]] == 1]
+    #     if cwes_predicted:
+    #         logging.info("Predicted CWEs: %s", ", ".join(cwes_predicted))
+    #         logging.info(
+    #             "Actual CWEs: %s",
+    #             ", ".join([index_to_cwe[i] for i, v in enumerate(y_t) if v == 1]),
+    #         )
+
+    metrics.plot_confusion_matrix(y_true, y_pred_labels, labels=cwe_to_index.keys())
 
 
 if __name__ == "__main__":
