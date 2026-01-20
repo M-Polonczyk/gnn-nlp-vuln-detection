@@ -74,7 +74,9 @@ def main():
             if features.edge_features is not None
             else None,
         }
-        pyg_data_list.append(Data(**data_dict))
+        data = Data(**data_dict)
+        data.code_sample_id = str(s.id)  # Otherwise torch sets it to long
+        pyg_data_list.append(data)
 
     torch.save(pyg_data_list, "data/processed/diversevul_code_samples.pt")
 

@@ -8,8 +8,6 @@ from torch_geometric.data import Data
 from torch_geometric.loader import DataLoader
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from gnn_vuln_detection.data_processing.graph_converter import DataclassToGraphConverter
-from gnn_vuln_detection.dataset import DiverseVulDatasetLoader
 from gnn_vuln_detection.models.factory import (
     GNNModelFactory,
 )
@@ -64,41 +62,6 @@ def predict(batch_graph: Data, device="cpu") -> torch.Tensor:
         return model(batch_graph.x, batch_graph.edge_index, batch_graph.batch)
 
 
-def predict_batch(
-    batch_graphs: list[Data] | DataLoader, cwes, index_to_cwe, device="cpu"
-) -> None:
-    for batch_graph in batch_graphs:
-        output = predict(batch_graph, device)
-
-        probs_all = torch.sigmoid(output)
-
-        for i in range(probs_all.shape[0]):
-            probs = probs_all[i]
-            preds = (probs > THRESHOLD).int()
-
-            print("Probabilities:", probs)
-            print("Predicted CWE labels:", preds)
-            print(
-                "True CWE labels:",
-                batch_graph.y[i]
-                if isinstance(batch_graph.y, torch.Tensor)
-                else batch_graph.y,
-            )
-            cwes_predicted = [val["cwe_id"] for val in cwes if preds[val["index"]] == 1]
-            if cwes_predicted:
-                print("Predicted CWEs:")
-                print(", ".join(cwes_predicted))
-
-            best_idx = probs.argmax().item()
-            best_prob = probs[int(best_idx)].item()
-            best_cwe = index_to_cwe[best_idx]
-            print("Best prediction:")
-            print(f"\tCWE: {best_cwe}")
-            print(f"\tindex: {best_idx}")
-            print(f"\tprobability: {best_prob:.4f}")
-        exit()
-
-
 def load_dataset(dataset_type="test") -> DataLoader:
     data = torch.load("data/processed/diversevul_code_samples.pt", weights_only=False)
     # data = torch.load(
@@ -106,38 +69,36 @@ def load_dataset(dataset_type="test") -> DataLoader:
     # )
     if isinstance(data, DataLoader):
         return data
-    return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
+    return DataLoader(
+        data,
+        batch_size=32,
+        shuffle=False,
+        num_workers=2,
+        pin_memory=True,
+    )
 
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    dataset_config = config_loader.load_config("dataset_paths.yaml")
     model_params = config_loader.load_config("model_params.yaml")["gcn_multiclass"]
     cwes = config_loader.load_config("model_params.yaml")["vulnerabilities"]
 
     num_classes = model_params["num_classes"]
     cwe_to_index = {val["cwe_id"]: val["index"] for val in cwes}
     index_to_cwe = {v: k for k, v in cwe_to_index.items()}
-
-    diversevul_loader = DiverseVulDatasetLoader(
-        dataset_path=dataset_config["diversevul"]["dataset_path"],
-    )
-    converter = DataclassToGraphConverter()
-    # samples = diversevul_loader.load_dataset([val["cwe_id"] for val in cwes])
-    test_samples = load_dataset()
-    # val_samples = load_dataset("val")
-    # predict_batch(samples, cwes, index_to_cwe, device=device)
-
-    model = load_model(input_dim=test_samples.dataset[0].x.shape[1], device=device)
     thresholds = [
         float(t)
         for t in file_loader.load_file("checkpoints/optimal_thresholds.csv").split(",")
     ]
+
+    test_samples = load_dataset()
+    model = load_model(input_dim=test_samples.dataset[0].x.shape[1], device=device)
+
     model.label_threshold = 0.5
-    # y_true, y_pred_probs, y_pred_labels = model.evaluate(val_samples, device)
+
     y_true, y_pred_probs, y_pred_labels = model.evaluate(test_samples, device)
-    # y_pred_labels = (y_pred_probs >= thresholds).astype(int)
+
     logging.info("y_true: %s", y_true)
     logging.info("y_probs: %s", y_pred_probs)
     logging.info("y_labels: %s", y_pred_labels)
@@ -146,7 +107,7 @@ def main():
         y_true, y_pred_probs, y_pred_labels, 1.5, "macro"
     )
     logging.info("Calculated metrics: %s", calculated_metrics)
-    metrics.save_metrics_to_csv(calculated_metrics, "checkpoints/metrics.csv")
+    # metrics.save_metrics_to_csv(calculated_metrics, "checkpoints/metrics.csv")
 
     for i in range(num_classes):
         class_cwe = index_to_cwe[i]
