@@ -6,7 +6,6 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
-
 from gnn_vuln_detection.code_representation.ast_parser import ASTParser
 
 

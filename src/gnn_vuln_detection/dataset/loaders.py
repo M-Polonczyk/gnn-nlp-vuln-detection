@@ -28,7 +28,7 @@ class DatasetLoader:
             raise FileNotFoundError(msg)
 
     @abc.abstractmethod
-    def load_dataset(self) -> list[dict]:
+    def load_dataset(self) -> list[CodeSample]:
         """Load the dataset from the JSON file."""
 
     def _serialize_data(self, samples: list[CodeSample]) -> list[dict[str, Any]]:
@@ -65,18 +65,18 @@ class DatasetLoader:
                 return False
 
             # Check tensor shapes
-            if data.x.shape[0] == 0:
+            if data.x.shape[0] == 0:  # pyright: ignore[reportOptionalMemberAccess]
                 return False
 
-            if data.edge_index.shape[0] != 2:
+            if data.edge_index.shape[0] != 2:  # pyright: ignore[reportOptionalMemberAccess]
                 # Wrong edge format
                 return False
 
             # Check edge indices are within bounds
-            if data.edge_index.shape[1] > 0:
+            if data.edge_index.shape[1] > 0:  # pyright: ignore[reportOptionalMemberAccess]
                 # There are edges
-                max_edge_idx = data.edge_index.max().item()
-                if max_edge_idx >= data.x.shape[0]:
+                max_edge_idx = data.edge_index.max().item()  # pyright: ignore[reportOptionalMemberAccess]
+                if max_edge_idx >= data.x.shape[0]:  # pyright: ignore[reportOptionalMemberAccess]
                     # Edge index out of bounds
                     return False
 
@@ -288,7 +288,8 @@ class DiverseVulDatasetLoader(DatasetLoader):
                 continue
             except Exception:
                 logger.exception(
-                    "Unexpected error processing sample at index %d. Item snapshot: %s..",
+                    "Unexpected error processing sample at index %d. \
+                        Item snapshot: %s..",
                     i,
                     str(item)[:200],
                 )
@@ -339,7 +340,3 @@ class DiverseVulDatasetLoader(DatasetLoader):
 
         logger.info("Loaded metadata for %d DiverseVul entries", len(self.metadata))
         return self.metadata
-
-
-def load_cwe_dataset(dataset_loader: DatasetLoader, labels: list[str]):
-    dataset_loader.load_dataset()

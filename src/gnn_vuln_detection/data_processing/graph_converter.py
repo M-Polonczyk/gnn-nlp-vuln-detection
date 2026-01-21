@@ -29,7 +29,7 @@ from tree_sitter import Node
 class ASTToGraphConverter:
     """Converts AST nodes to graph representations suitable for GNNs."""
 
-    # Number of fixed numerical features (children, start/end line/col, text_len, is_named)
+    # Number of fixed numerical features
     NUM_NUMERICAL_FEATURES = 7
 
     def __init__(self, feature_extractor: CodeGraphProcessor | None = None) -> None:

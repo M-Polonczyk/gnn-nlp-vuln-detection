@@ -10,7 +10,6 @@ from torch_geometric.data import DataLoader
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from gnn_vuln_detection.data_processing.dataset_loader import DiverseVulDatasetLoader
-
 from gnn_vuln_detection.training import metrics, train_vulnerability_detector
 from gnn_vuln_detection.utils import config_loader
 

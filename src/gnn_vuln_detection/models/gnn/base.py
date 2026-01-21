@@ -31,11 +31,11 @@ class BaseGNN(nn.Module):
         return F.softmax(logits, dim=1), torch.argmax(logits, dim=1)
 
     @abc.abstractmethod
-    def forward(self, data) -> nn.Sequential:
+    def forward(self, *args, **kwargs) -> nn.Sequential:
         # Data to zazwyczaj obiekt PyTorch Geometric Data lub Batch
         # zawierający x (cechy węzłów), edge_index (indeksy krawędzi),
         # edge_attr (cechy krawędzi), batch (indeksy batcha dla węzłów)
-        x, edge_index = data.x, data.edge_index
+        pass
 
     def reset_parameters(self) -> None:
         """Weights initialization for all layers."""

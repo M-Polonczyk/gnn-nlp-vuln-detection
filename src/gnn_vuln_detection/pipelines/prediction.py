@@ -114,7 +114,7 @@ def load_dataset(dataset_type="test") -> DataLoader:
     return DataLoader(data, batch_size=8, shuffle=False, num_workers=1, pin_memory=True)
 
 
-def main():
+def main() -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     dataset_config = config_loader.load_config("dataset_paths.yaml")

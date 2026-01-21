@@ -42,6 +42,16 @@ dependencies = [
 Homepage = "https://github.com/M-Polonczyk/gnn-nlp-vuln-detection"
 Repository = "https://github.com/M-Polonczyk/gnn-nlp-vuln-detection"
 
+[dependency-groups]
+dev = [
+  "coverage>=7.10.6",
+  "mypy>=1.19.1",
+  "pytest>=8.4.2",
+  "python-dotenv>=1.2.1",
+  "ruff>=0.14.0",
+  "types-pyyaml>=6.0.12.20250915",
+]
+
 [build-system]
 requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
@@ -111,7 +121,7 @@ ignore_missing_imports = true
 
 # ==== ruff ====
 [tool.ruff]
-src = ["gnn_vuln_detection", "tests"]
+src = ["gnn_vuln_detection"]
 target-version = "py312"
 
 [tool.ruff.lint]
@@ -182,12 +192,3 @@ ignore = [
 # The fixes in extend-unsafe-fixes will require
 # provide the `--unsafe-fixes` flag when fixing.
 extend-unsafe-fixes = ["UP038"]
-
-[dependency-groups]
-dev = [
-    "coverage>=7.10.6",
-    "mypy>=1.17.1",
-    "pytest>=8.4.2",
-    "python-dotenv>=1.2.1",
-    "ruff>=0.13.0",
-]
