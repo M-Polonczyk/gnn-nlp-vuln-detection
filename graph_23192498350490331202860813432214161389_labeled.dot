@@ -226,6 +226,7 @@ strict digraph "AST_Graph" {
 				start_byte=36,
 		start_point="Point(row=0, column=36)",
 		text="{",
+		label="punctuation '{'",
 		text_length=1];
 	14 -> 16	[style=dashed, color=gray, label="next_token"];
 	15 -> 1	[style=dotted, label="ast_reverse"];
