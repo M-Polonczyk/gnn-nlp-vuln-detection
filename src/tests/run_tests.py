@@ -16,18 +16,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 def run_all_tests(verbosity=2, buffer=False):
     """Run all tests and return the test results."""
-    print("🔍 Discovering tests...")
 
     # Discover and run all tests in the tests directory
     loader = unittest.TestLoader()
     start_dir = os.path.dirname(__file__)
     suite = loader.discover(start_dir, pattern="test_*.py")
 
-    test_count = suite.countTestCases()
-    print(f"📊 Found {test_count} tests")
+    suite.countTestCases()
 
     # Run the tests
-    print("🚀 Running tests...\n")
     start_time = time.time()
 
     runner = unittest.TextTestRunner(
@@ -38,16 +35,14 @@ def run_all_tests(verbosity=2, buffer=False):
     result = runner.run(suite)
 
     end_time = time.time()
-    duration = end_time - start_time
+    end_time - start_time
 
-    print(f"\n⏱️  Tests completed in {duration:.2f} seconds")
     return result
 
 
 def run_specific_test_module(module_name, verbosity=2):
     """Run tests for a specific module."""
     try:
-        print(f"🎯 Running tests for module: {module_name}")
 
         # Import the specific test module
         test_module = __import__(f"test_{module_name}", fromlist=[""])
@@ -56,8 +51,7 @@ def run_specific_test_module(module_name, verbosity=2):
         loader = unittest.TestLoader()
         suite = loader.loadTestsFromModule(test_module)
 
-        test_count = suite.countTestCases()
-        print(f"📊 Found {test_count} tests in module")
+        suite.countTestCases()
 
         # Run the tests
         start_time = time.time()
@@ -65,19 +59,16 @@ def run_specific_test_module(module_name, verbosity=2):
         result = runner.run(suite)
 
         end_time = time.time()
-        duration = end_time - start_time
-        print(f"\n⏱️  Tests completed in {duration:.2f} seconds")
+        end_time - start_time
 
         return result
-    except ImportError as e:
-        print(f"❌ Error importing test module 'test_{module_name}': {e}")
+    except ImportError:
         return None
 
 
 def run_specific_test_class(module_name, class_name, verbosity=2):
     """Run tests for a specific test class."""
     try:
-        print(f"🎯 Running tests for class: {class_name} in module: {module_name}")
 
         # Import the specific test module
         test_module = __import__(f"test_{module_name}", fromlist=[""])
@@ -89,8 +80,7 @@ def run_specific_test_class(module_name, class_name, verbosity=2):
         loader = unittest.TestLoader()
         suite = loader.loadTestsFromTestCase(test_class)
 
-        test_count = suite.countTestCases()
-        print(f"📊 Found {test_count} tests in class")
+        suite.countTestCases()
 
         # Run the tests
         start_time = time.time()
@@ -98,20 +88,15 @@ def run_specific_test_class(module_name, class_name, verbosity=2):
         result = runner.run(suite)
 
         end_time = time.time()
-        duration = end_time - start_time
-        print(f"\n⏱️  Tests completed in {duration:.2f} seconds")
+        end_time - start_time
 
         return result
-    except (ImportError, AttributeError) as e:
-        print(
-            f"❌ Error running test class '{class_name}' in module 'test_{module_name}': {e}",
-        )
+    except (ImportError, AttributeError):
         return None
 
 
 def list_available_tests() -> None:
     """List all available test modules and their test classes."""
-    print("📋 Available test modules and classes:\n")
 
     test_dir = os.path.dirname(__file__)
     test_files = [
@@ -120,7 +105,6 @@ def list_available_tests() -> None:
 
     for test_file in sorted(test_files):
         module_name = test_file[:-3]  # Remove .py extension
-        print(f"📁 {module_name}")
 
         try:
             # Import the module to list its test classes
@@ -134,13 +118,12 @@ def list_available_tests() -> None:
                 and hasattr(getattr(test_module, name), "__bases__")
             ]
 
-            for test_class in test_classes:
-                print(f"   🧪 {test_class}")
+            for _test_class in test_classes:
+                pass
 
-        except Exception as e:
-            print(f"   ❌ Error loading module: {e}")
+        except Exception:
+            pass
 
-        print()
 
 
 def run_coverage_analysis():
@@ -148,7 +131,6 @@ def run_coverage_analysis():
     try:
         import coverage
 
-        print("📊 Running tests with coverage analysis...")
 
         # Start coverage
         cov = coverage.Coverage()
@@ -161,20 +143,15 @@ def run_coverage_analysis():
         cov.stop()
         cov.save()
 
-        print("\n📈 Coverage Report:")
-        print("-" * 50)
         cov.report()
 
         # Generate HTML report
         html_dir = os.path.join(os.path.dirname(__file__), "..", "..", "coverage_html")
         cov.html_report(directory=html_dir)
-        print(f"\n📄 HTML coverage report generated in: {html_dir}")
 
         return result
 
     except ImportError:
-        print("⚠️  Coverage module not installed. Install with: pip install coverage")
-        print("Running tests without coverage analysis...\n")
         return run_all_tests()
 
 
@@ -247,32 +224,23 @@ Examples:
 
 def print_test_summary(result) -> None:
     """Print a summary of test results."""
-    print("\n" + "=" * 60)
     if result.wasSuccessful():
-        print(f"✅ All tests passed! Ran {result.testsRun} tests successfully.")
         if result.skipped:
-            print(f"⏭️  Skipped {len(result.skipped)} tests.")
+            pass
     else:
         failures = len(result.failures)
         errors = len(result.errors)
-        total_issues = failures + errors
+        failures + errors
 
-        print("❌ Tests completed with issues:")
-        print(f"   • {failures} failures")
-        print(f"   • {errors} errors")
-        print(f"   • {result.testsRun - total_issues} passed")
 
         if result.failures:
-            print("\n📋 Failed tests:")
-            for test, _traceback in result.failures:
-                print(f"   • {test}")
+            for _test, _traceback in result.failures:
+                pass
 
         if result.errors:
-            print("\n📋 Error tests:")
-            for test, _traceback in result.errors:
-                print(f"   • {test}")
+            for _test, _traceback in result.errors:
+                pass
 
-    print("=" * 60)
 
 
 def main() -> None:
@@ -294,7 +262,6 @@ def main() -> None:
         result = run_coverage_analysis()
     elif args.test_class:
         if not args.module:
-            print("❌ Error: --class requires --module to be specified")
             sys.exit(1)
         result = run_specific_test_class(args.module, args.test_class, verbosity)
     elif args.module:
@@ -303,7 +270,6 @@ def main() -> None:
         result = run_all_tests(verbosity)
 
     if result is None:
-        print("❌ Test execution failed")
         sys.exit(1)
 
     # Print summary and exit
