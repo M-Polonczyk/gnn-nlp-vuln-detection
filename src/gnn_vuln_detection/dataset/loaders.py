@@ -340,3 +340,28 @@ class DiverseVulDatasetLoader(DatasetLoader):
 
         logger.info("Loaded metadata for %d DiverseVul entries", len(self.metadata))
         return self.metadata
+
+    def load_samples_by_ids(
+        self,
+        sample_ids: list[str] | set[str],
+    ) -> list[CodeSample]:
+        """
+        Load samples filtered by their IDs.
+
+        Args:
+            sample_ids (list[str]): List of sample IDs to load.
+
+        Returns:
+            list[CodeSample]: List of CodeSample objects
+        """
+        if not self.samples:
+            self.load_dataset()
+
+        id_set = set(sample_ids)
+        filtered_samples = [s for s in self.samples if str(s.id) in id_set]
+
+        logger.info(
+            "Loaded %d samples filtered by provided IDs.",
+            len(filtered_samples),
+        )
+        return filtered_samples
